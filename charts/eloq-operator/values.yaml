@@ -1,0 +1,57 @@
+# Default values for eloq-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+appendReleaseSuffix: false
+# cloudProvider: "aws"
+# k8sClusterName: "eloqdb-dev"
+# awsRegion: "ap-northeast-1"
+timezone: UTC
+
+## controller manager
+controllerManager:
+  # nodeSelector:
+  #   eloqdata.com/node: control-plane
+  serviceAccount:
+    name: "eloq-operator-controller-manager-sa"
+    annotations: {}
+  image:
+    repository: eloqdata/eloq-operator
+    tag: latest
+  imagePullPolicy: IfNotPresent
+  ## In case the above image is pulled from a registry that requires
+  ## authentication, a secret containining credentials can be added
+  ## imagePullSecrets:
+  ##   - secret_with_credentials_to_custom_registry
+  imagePullSecrets: {}
+  resources:
+    requests:
+      cpu: 1
+      memory: "1Gi"
+    limits:
+      cpu: 1
+      memory: "1Gi"
+  healthPort: 18080
+  metricPort: 18081
+  ## Set `watchNamespaces` to watch the specific namespaces, otherwise the controller by default watches all
+  ## MonographDBCluster in all namespaces.
+  ## e.g.
+  ## watchNamespaces: "N1, N2, N3"
+  watchNamespaces: ""
+
+  enabledLeaderElect: false
+  ## This option is used to control whether to monitor eloq-operator.
+  ## If it is true, the corresponding Service, ServiceMonitor (depends on kube-prometheus-stack) will be deployed.
+  enabledMonitor: false
+  ## This ServiceMonitor is to serve the eloq-operator's metrics
+  ## controller manager.
+  serviceMonitor:
+    release: kube-prometheus-stack
+  env: []
+
+## Setting keepCrds to false will delete CRDs after helm uninstall the release
+keepCrds: true
+
+cert-manager:
+  # -- Install cert-manger. Set to false to use an existing cert-manager
+  enabled: false

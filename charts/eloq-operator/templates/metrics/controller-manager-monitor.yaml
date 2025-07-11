@@ -1,0 +1,28 @@
+{{- if .Values.controllerManager.enabledMonitor }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "eloq-operator.name" . }}-controller-manager-metrics-monitor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/component: metrics
+    release: {{ .Values.controllerManager.serviceMonitor.release }}
+    {{- include "eloq-operator.commonLabels" . | nindent 4 }}
+    {{- include "eloq-operator.controlPlaneLabels" . | nindent 4 }}
+spec:
+  endpoints:
+  - path: /metrics
+    port: https
+    scheme: https
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tlsConfig:
+      insecureSkipVerify: true
+    relabelings:
+    - targetLabel: instance
+      replacement: "eloq-controller"
+      action: replace
+  selector:
+    matchLabels:
+      {{- include "eloq-operator.selectorLabels" . | nindent 6 }}
+      {{- include "eloq-operator.controlPlaneLabels" . | nindent 6 }}
+{{- end }}

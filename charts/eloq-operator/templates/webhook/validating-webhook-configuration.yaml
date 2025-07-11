@@ -1,0 +1,36 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "eloq-operator.fullname" . }}-validating-webhook-configuration
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "eloq-operator.name" . }}-serving-cert
+  labels:
+    app.kubernetes.io/component: webhook
+    {{- include "eloq-operator.commonLabels" . | nindent 4 }}
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "eloq-operator.name" . }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-eloqdbcluster-eloqdata-com-v1alpha1-eloqdbcluster
+  failurePolicy: Fail
+  name: veloqdbcluster.kb.io
+  namespaceSelector:
+    matchExpressions:
+    - key: disable-namespace
+      operator: DoesNotExist
+  rules:
+  - apiGroups:
+    - eloqdbcluster.eloqdata.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - eloqdbclusters
+    scope: Namespaced
+  sideEffects: None
+  timeoutSeconds: 1
