@@ -22,7 +22,7 @@ dependencies:
     version: ">=1.13.1"
 
 source:
-  - https://github.com/eloqdata/eloq-operator
+  - https://github.com/monographdb/eloq-operator
 
 maintainers:
   - name: MonographDB Inc

@@ -16,7 +16,7 @@ controllerManager:
     name: "eloq-operator-controller-manager-sa"
     annotations: {}
   image:
-    repository: eloqdata/eloq-operator
+    repository: monographdb/eloq-operator
     tag: latest
   imagePullPolicy: IfNotPresent
   ## In case the above image is pulled from a registry that requires
