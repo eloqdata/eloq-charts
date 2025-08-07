@@ -101,7 +101,7 @@ spec:
                           rawConfig: |
                             [mariadb]
                             max_connections=2000
-                          for eloqdoc, the MongoDB configuration format is like(YAML format):
+                          for eloqdoc, the MongoDB configuration format is like (YAML format):
                           rawConfig: |
                             systemLog:
                               verbosity: 0
