@@ -1,6 +1,34 @@
 apiVersion: v1
 entries:
   eloq-operator:
+  - apiVersion: v2
+    appVersion: 4.0.2
+    created: "2025-08-11T07:28:25.129980391Z"
+    dependencies:
+    - alias: certmanager
+      condition: cert-manager.enabled
+      name: cert-manager
+      repository: https://charts.jetstack.io
+      version: '>=1.13.1'
+    description: A Helm chart for deploying EloqDB Operator to Kubernetes.
+    digest: 3f3c3526657227048490bea3dae5f85b154b6361cfa665e71dc06470941c9196
+    keywords:
+    - database
+    - newsql
+    - mariadb
+    - mysql
+    - redis
+    - bigtable
+    - cassandra
+    - dynamodb
+    - operator
+    maintainers:
+    - name: MonographDB Inc
+      url: https://www.eloqdata.com/
+    name: eloq-operator
+    urls:
+    - https://github.com/eloqdata/eloq-charts/releases/download/eloq-operator-2.1.1/eloq-operator-2.1.1.tgz
+    version: 2.1.1
   - apiVersion: v3
     appVersion: 4.0.1
     created: "2025-07-21T10:46:41.718240286Z"
@@ -29,4 +57,4 @@ entries:
     urls:
     - https://github.com/eloqdata/eloq-charts/releases/download/eloq-operator-2.1.0/eloq-operator-2.1.0.tgz
     version: 2.1.0
-generated: "2025-07-21T10:46:41.718249093Z"
+generated: "2025-08-11T07:28:25.129993266Z"
