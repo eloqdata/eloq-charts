@@ -116,7 +116,7 @@ spec:
                     type: string
                   port:
                     description: |-
-                      Port to which the user is connected. This port is currently the connection port for EloqSQL or EloqKV.
+                      Port to which the user is connected. This port is currently the connection port for EloqSQL, EloqKV, or EloqDoc.
                       It is required to be set.
                     type: integer
                 required:
@@ -837,11 +837,19 @@ spec:
                           objectStoreBucketName:
                             description: ObjectStoreBucketName
                             type: string
+                          objectStoreObjectPath:
+                            description: ObjectStoreObjectPath rocksdbCloud object
+                              path(uri) under the cloud object bucket for data store.
+                            type: string
                           region:
                             description: Region Cloud provider object storage region
                             type: string
                           txLogBucketName:
                             description: TxLogBucketName
+                            type: string
+                          txLogObjectPath:
+                            description: TxLogObjectPath rocksdbCloud object path(uri)
+                              under the cloud object bucket for log service.
                             type: string
                         required:
                         - bucketPrefix
@@ -1046,11 +1054,19 @@ spec:
                           objectStoreBucketName:
                             description: ObjectStoreBucketName
                             type: string
+                          objectStoreObjectPath:
+                            description: ObjectStoreObjectPath rocksdbCloud object
+                              path(uri) under the cloud object bucket for data store.
+                            type: string
                           region:
                             description: Region Cloud provider object storage region
                             type: string
                           txLogBucketName:
                             description: TxLogBucketName
+                            type: string
+                          txLogObjectPath:
+                            description: TxLogObjectPath rocksdbCloud object path(uri)
+                              under the cloud object bucket for log service.
                             type: string
                         required:
                         - bucketPrefix
