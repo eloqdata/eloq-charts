@@ -142,65 +142,8 @@ spec:
                         description: EphemeralVolume ephemeral volume to use
                         properties:
                           spec:
-                            description: (Optional) Ephemeral Volume spec
-                            properties:
-                              resources:
-                                description: Ephemeral Volume Resource
-                                properties:
-                                  limits:
-                                    additionalProperties:
-                                      anyOf:
-                                      - type: integer
-                                      - type: string
-                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                      x-kubernetes-int-or-string: true
-                                    description: |-
-                                      Limits describes the maximum amount of compute resources allowed.
-                                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-                                    type: object
-                                  requests:
-                                    additionalProperties:
-                                      anyOf:
-                                      - type: integer
-                                      - type: string
-                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                      x-kubernetes-int-or-string: true
-                                    description: |-
-                                      Requests describes the minimum amount of compute resources required.
-                                      If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
-                                      otherwise to an implementation-defined value. Requests cannot exceed Limits.
-                                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-                                    type: object
-                                type: object
-                            required:
-                            - resources
-                            type: object
-                        type: object
-                      hostPath:
-                        description: (Optional) Directory from the host node's filesystem
-                        properties:
-                          path:
-                            description: |-
-                              path of the directory on the host.
-                              If the path is a symlink, it will follow the link to the real path.
-                              More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
-                            type: string
-                          type:
-                            description: |-
-                              type for HostPath Volume
-                              Defaults to ""
-                              More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
-                            type: string
-                        required:
-                        - path
-                        type: object
-                      localPVC:
-                        description: LocalPV local persistent volume to use
-                        properties:
-                          spec:
-                            description: |-
-                              (Optional) Use local NVMe as data storage, localPV is volatile and used as cache when this attribute is declared.
-                               The machine type should have NVMe storage.
+                            description: Spec for the persistent volume claim when
+                              using generic ephemeral volume
                             properties:
                               accessModes:
                                 description: |-
@@ -401,6 +344,31 @@ spec:
                                   the PersistentVolume backing this claim.
                                 type: string
                             type: object
+                          volumeType:
+                            default: generic
+                            description: VolumeType specifies the type of ephemeral
+                              volume to use
+                            enum:
+                            - generic
+                            type: string
+                        type: object
+                      hostPath:
+                        description: (Optional) Directory from the host node's filesystem
+                        properties:
+                          path:
+                            description: |-
+                              path of the directory on the host.
+                              If the path is a symlink, it will follow the link to the real path.
+                              More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
+                            type: string
+                          type:
+                            description: |-
+                              type for HostPath Volume
+                              Defaults to ""
+                              More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
+                            type: string
+                        required:
+                        - path
                         type: object
                       pvc:
                         description: PersistentVolumeClaim Persistent volume to use
@@ -1152,65 +1120,8 @@ spec:
                         description: EphemeralVolume ephemeral volume to use
                         properties:
                           spec:
-                            description: (Optional) Ephemeral Volume spec
-                            properties:
-                              resources:
-                                description: Ephemeral Volume Resource
-                                properties:
-                                  limits:
-                                    additionalProperties:
-                                      anyOf:
-                                      - type: integer
-                                      - type: string
-                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                      x-kubernetes-int-or-string: true
-                                    description: |-
-                                      Limits describes the maximum amount of compute resources allowed.
-                                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-                                    type: object
-                                  requests:
-                                    additionalProperties:
-                                      anyOf:
-                                      - type: integer
-                                      - type: string
-                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                                      x-kubernetes-int-or-string: true
-                                    description: |-
-                                      Requests describes the minimum amount of compute resources required.
-                                      If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
-                                      otherwise to an implementation-defined value. Requests cannot exceed Limits.
-                                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
-                                    type: object
-                                type: object
-                            required:
-                            - resources
-                            type: object
-                        type: object
-                      hostPath:
-                        description: (Optional) Directory from the host node's filesystem
-                        properties:
-                          path:
-                            description: |-
-                              path of the directory on the host.
-                              If the path is a symlink, it will follow the link to the real path.
-                              More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
-                            type: string
-                          type:
-                            description: |-
-                              type for HostPath Volume
-                              Defaults to ""
-                              More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
-                            type: string
-                        required:
-                        - path
-                        type: object
-                      localPVC:
-                        description: LocalPV local persistent volume to use
-                        properties:
-                          spec:
-                            description: |-
-                              (Optional) Use local NVMe as data storage, localPV is volatile and used as cache when this attribute is declared.
-                               The machine type should have NVMe storage.
+                            description: Spec for the persistent volume claim when
+                              using generic ephemeral volume
                             properties:
                               accessModes:
                                 description: |-
@@ -1411,6 +1322,31 @@ spec:
                                   the PersistentVolume backing this claim.
                                 type: string
                             type: object
+                          volumeType:
+                            default: generic
+                            description: VolumeType specifies the type of ephemeral
+                              volume to use
+                            enum:
+                            - generic
+                            type: string
+                        type: object
+                      hostPath:
+                        description: (Optional) Directory from the host node's filesystem
+                        properties:
+                          path:
+                            description: |-
+                              path of the directory on the host.
+                              If the path is a symlink, it will follow the link to the real path.
+                              More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
+                            type: string
+                          type:
+                            description: |-
+                              type for HostPath Volume
+                              Defaults to ""
+                              More info: https://kubernetes.io/docs/concepts/storage/volumes#hostpath
+                            type: string
+                        required:
+                        - path
                         type: object
                       pvc:
                         description: PersistentVolumeClaim Persistent volume to use
