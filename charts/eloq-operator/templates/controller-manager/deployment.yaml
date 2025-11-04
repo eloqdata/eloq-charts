@@ -100,8 +100,12 @@ spec:
         - name: AWS_REGION
           value: {{ .Values.awsRegion }}
         {{- end }}
+        {{- if .Values.k8sDistribution }}
+        - name: K8S_DISTRIBUTION
+          value: {{ .Values.k8sDistribution }}
+        {{- end }}
       - name: kube-rbac-proxy
-        image: quay.io/brancz/kube-rbac-proxy:v0.13.1
+        image: {{ .Values.controllerManager.kubeRbacProxy.image.repository }}:{{ .Values.controllerManager.kubeRbacProxy.image.tag }}
         imagePullPolicy: {{ .Values.controllerManager.imagePullPolicy | default "IfNotPresent" }}
         args:
         - --secure-listen-address=0.0.0.0:8443
@@ -112,13 +116,7 @@ spec:
         - containerPort: 8443
           name: https
           protocol: TCP
-        resources:
-          limits:
-            cpu: 500m
-            memory: 512Mi
-          requests:
-            cpu: 500m
-            memory: 512Mi
+        resources: {{- toYaml .Values.controllerManager.kubeRbacProxy.resources | nindent 10 }}
         securityContext:
           allowPrivilegeEscalation: false
           capabilities:
