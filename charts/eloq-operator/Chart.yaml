@@ -1,8 +1,8 @@
 apiVersion: v2
 name: eloq-operator
 description: A Helm chart for deploying EloqDB Operator to Kubernetes.
-version: 2.1.8
-appVersion: "4.0.10"
+version: 2.1.9
+appVersion: "4.0.11"
 keywords:
   - database
   - newsql
