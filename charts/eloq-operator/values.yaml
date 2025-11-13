@@ -17,7 +17,7 @@ controllerManager:
     annotations: {}
   image:
     repository: eloqdata/eloq-operator
-    tag: 4.0.11
+    tag: 4.0.12
   imagePullPolicy: IfNotPresent
   ## In case the above image is pulled from a registry that requires
   ## authentication, a secret containing credentials can be added
