@@ -22,6 +22,24 @@ helm install [RELEASE_NAME]  eloqdata/eloq-operator --namespace [NAMESPACE_NAME]
 
 > NOTE: If the installation specifies namespace please create it first.
 
+#### Install with Node Selector
+
+To schedule the eloq-operator controller manager on specific nodes, you can specify a nodeSelector:
+
+```shell
+helm install [RELEASE_NAME] eloqdata/eloq-operator --namespace [NAMESPACE_NAME] \
+  --set controllerManager.nodeSelector."eloqdata\.com/node"=control-plane
+```
+
+### Upgrade the eloq-operator
+
+To upgrade an existing eloq-operator release:
+
+```shell
+helm repo update
+helm upgrade [RELEASE_NAME] eloqdata/eloq-operator --namespace [NAMESPACE_NAME]
+```
+
 ### Check the installed eloq operator
 
 ```shell
