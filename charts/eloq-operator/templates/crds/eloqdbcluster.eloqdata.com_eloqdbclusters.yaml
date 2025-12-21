@@ -101,7 +101,7 @@ spec:
                           rawConfig: |
                             [mariadb]
                             max_connections=2000
-                          for eloqdoc, the MongoDB configuration format is like (YAML format):
+                          for eloqdoc, the MongoDB configuration format is like:
                           rawConfig: |
                             systemLog:
                               verbosity: 0
@@ -373,32 +373,6 @@ spec:
                       pvc:
                         description: PersistentVolumeClaim Persistent volume to use
                         properties:
-                          efs:
-                            description: (Optional) EFS volume
-                            properties:
-                              managed:
-                                default: true
-                                description: |-
-                                  (Optional) ManagedEFS indicates whether the system should create and manage its own EFS.
-                                  If true, the FileSystemId and AccessPoint fields in Source will be ignored.
-                                type: boolean
-                              source:
-                                description: (Optional) Source,Use the existing EFS
-                                  system.
-                                properties:
-                                  accessPoint:
-                                    description: AccessPoint, the access point of
-                                      the file system.
-                                    type: string
-                                  fileSystemId:
-                                    description: FileSystemId, the ID of the file
-                                      system.
-                                    type: string
-                                required:
-                                - accessPoint
-                                - fileSystemId
-                                type: object
-                            type: object
                           source:
                             description: (Optional) Existing PVC in the same namespace
                             properties:
@@ -802,6 +776,11 @@ spec:
                             description: Cloud provider object storage type, s3 (aws
                               s3) or gcs (google cloud storage)
                             type: string
+                          endpointUrl:
+                            default: ""
+                            description: EndpointUrl Custom S3-compatible endpoint
+                              URL (e.g., for MinIO or other S3-compatible storage)
+                            type: string
                           objectStoreBucketName:
                             description: ObjectStoreBucketName
                             type: string
@@ -946,7 +925,11 @@ spec:
                   storageClassDiskType:
                     default: gp3
                     description: |-
-                      Cloud provisioned network storage disk type
+                      Cloud provisioned network storage disk type. Must match the cloud provider being used.
+                      Baidu Cloud (CCE) supported types: hp1, ssd, cloud_hp1, premium_ssd, enhanced_ssd_pl1, enhanced_ssd_pl2
+                        Reference: https://cloud.baidu.com/doc/BCC/s/6jwvyo0q2#storagetype
+                      AWS (EKS) supported types: gp2, gp3, io1, io2, st1, sc1
+                      GCP (GKE) supported types: pd-ssd, pd-extreme, pd-standard
                       Default: gp3
                     type: string
                   tolerations:
@@ -992,6 +975,11 @@ spec:
                     description: Version of EloqDB.
                     type: string
                 type: object
+              s3SecretName:
+                description: |-
+                  S3SecretName specifies the name of the Kubernetes secret containing S3 credentials (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY)
+                  to be injected as environment variables into the pods for accessing S3-compatible storage services.
+                type: string
               store:
                 description: StorageService spec
                 properties:
@@ -1018,6 +1006,11 @@ spec:
                             default: s3
                             description: Cloud provider object storage type, s3 (aws
                               s3) or gcs (google cloud storage)
+                            type: string
+                          endpointUrl:
+                            default: ""
+                            description: EndpointUrl Custom S3-compatible endpoint
+                              URL (e.g., for MinIO or other S3-compatible storage)
                             type: string
                           objectStoreBucketName:
                             description: ObjectStoreBucketName
@@ -1351,32 +1344,6 @@ spec:
                       pvc:
                         description: PersistentVolumeClaim Persistent volume to use
                         properties:
-                          efs:
-                            description: (Optional) EFS volume
-                            properties:
-                              managed:
-                                default: true
-                                description: |-
-                                  (Optional) ManagedEFS indicates whether the system should create and manage its own EFS.
-                                  If true, the FileSystemId and AccessPoint fields in Source will be ignored.
-                                type: boolean
-                              source:
-                                description: (Optional) Source,Use the existing EFS
-                                  system.
-                                properties:
-                                  accessPoint:
-                                    description: AccessPoint, the access point of
-                                      the file system.
-                                    type: string
-                                  fileSystemId:
-                                    description: FileSystemId, the ID of the file
-                                      system.
-                                    type: string
-                                required:
-                                - accessPoint
-                                - fileSystemId
-                                type: object
-                            type: object
                           source:
                             description: (Optional) Existing PVC in the same namespace
                             properties:
@@ -1853,7 +1820,11 @@ spec:
                   storageClassDiskType:
                     default: gp3
                     description: |-
-                      Cloud provisioned network storage disk type
+                      Cloud provisioned network storage disk type. Must match the cloud provider being used.
+                      Baidu Cloud (CCE) supported types: hp1, ssd, cloud_hp1, premium_ssd, enhanced_ssd_pl1, enhanced_ssd_pl2
+                        Reference: https://cloud.baidu.com/doc/BCC/s/6jwvyo0q2#storagetype
+                      AWS (EKS) supported types: gp2, gp3, io1, io2, st1, sc1
+                      GCP (GKE) supported types: pd-ssd, pd-extreme, pd-standard
                       Default: gp3
                     type: string
                   tolerations:
