@@ -34,3 +34,55 @@ webhooks:
     scope: Namespaced
   sideEffects: None
   timeoutSeconds: 1
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "eloq-operator.name" . }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /mutate-eloqdbcluster-eloqdata-com-v1alpha1-eloqdbclusterclaim
+  failurePolicy: Fail
+  name: meloqdbclusterclaim.kb.io
+  namespaceSelector:
+    matchExpressions:
+    - key: disable-webhooks
+      operator: DoesNotExist
+  rules:
+  - apiGroups:
+    - eloqdbcluster.eloqdata.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - eloqdbclusterclaims
+    scope: Namespaced
+  sideEffects: None
+  timeoutSeconds: 1
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ include "eloq-operator.name" . }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /mutate-eloqdbcluster-eloqdata-com-v1alpha1-eloqdbclustertemplate
+  failurePolicy: Fail
+  name: meloqdbclustertemplate.kb.io
+  namespaceSelector:
+    matchExpressions:
+    - key: disable-webhooks
+      operator: DoesNotExist
+  rules:
+  - apiGroups:
+    - eloqdbcluster.eloqdata.com
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - eloqdbclustertemplates
+    scope: Namespaced
+  sideEffects: None
+  timeoutSeconds: 1

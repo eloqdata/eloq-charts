@@ -16,3 +16,5 @@ spec:
     kind: Issuer
     name: {{ include "eloq-operator.name" . }}-selfsigned-issuer
   secretName: {{ include "eloq-operator.name" . }}-webhook-server-cert
+  privateKey:
+    rotationPolicy: Always
