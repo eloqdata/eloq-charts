@@ -346,21 +346,6 @@ spec:
                       rule: 'self.storageType == ''eloqStore'' ? !has(self.rocksdbCloud)
                         : true'
                 type: object
-              poolRef:
-                description: |-
-                  PoolRef references the EloqDBPool that manages this cluster.
-                  Set by pool controller when creating pool-managed clusters.
-                properties:
-                  name:
-                    description: Name of the EloqDBPool
-                    type: string
-                  namespace:
-                    description: Namespace of the EloqDBPool (optional, defaults to
-                      cluster namespace)
-                    type: string
-                required:
-                - name
-                type: object
               state:
                 allOf:
                 - enum:
@@ -1398,28 +1383,6 @@ spec:
                     mode
                   rule: 'has(self.log) && has(self.log.sharedLogCluster) ? self.clusterDeployMode
                     != ''txWithInternalLog'' : true'
-              serviceEndpoints:
-                description: |-
-                  ServiceEndpoints contains the service endpoints with their connectivity status
-                  Updated when cluster is attached, cleared when detached
-                items:
-                  description: ServiceEndpoint represents a service endpoint with
-                    its connectivity status
-                  properties:
-                    address:
-                      description: Address is the service address in format pod-name.service-name.namespace:port
-                      type: string
-                    available:
-                      description: Available indicates whether the endpoint is reachable
-                        and healthy
-                      type: boolean
-                  required:
-                  - address
-                  type: object
-                type: array
-                x-kubernetes-list-map-keys:
-                - address
-                x-kubernetes-list-type: map
             type: object
         required:
         - metadata

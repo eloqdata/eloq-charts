@@ -10,7 +10,7 @@ controllerManager:
   # nodeSelector:
   #   eloqdata.com/node: control-plane
   serviceAccount:
-    name: "eloq-operator-controller-manager-sa"
+    name: "eloq-operator-controller-manager"
     annotations: {}
   image:
     repository: eloqdata/eloq-operator
