@@ -44,11 +44,17 @@ spec:
         args:
         - --health-probe-bind-address=:{{ .Values.controllerManager.healthPort }}
         - --metrics-bind-address=127.0.0.1:{{ .Values.controllerManager.metricPort }}
+        {{- if .Values.controllerManager.watchNamespaces }}
         - --namespace={{ .Values.controllerManager.watchNamespaces }}
-        - --webhooks
-        {{- if .Values.controllerManager.enabledLeaderElect }}
-        - --leader-elect
         {{- end }}
+        - --crd-group=eloqdbcluster.eloqdata.com
+        {{- if .Values.controllerManager.enableLeaderElection }}
+        - --leader-elect
+        {{- else }}
+        - --leader-elect=false
+        {{- end }}
+        - --webhooks={{ .Values.controllerManager.enableWebhooks | default true }}
+        - --enable-reconciler={{ .Values.controllerManager.enableReconciler | default true }}
         ports:
         - name: healthcheck
           containerPort: {{ .Values.controllerManager.healthPort }}
@@ -60,15 +66,14 @@ spec:
           httpGet:
             path: /healthz
             port: {{ .Values.controllerManager.healthPort }}
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          failureThreshold: 10
+          initialDelaySeconds: 15
+          periodSeconds: 20
         readinessProbe:
           httpGet:
             path: /readyz
             port: {{ .Values.controllerManager.healthPort }}
           initialDelaySeconds: 5
-          periodSeconds: 5
+          periodSeconds: 10
         resources: {{- toYaml .Values.controllerManager.resources | nindent 10 }}
         securityContext:
           allowPrivilegeEscalation: false
@@ -88,24 +93,12 @@ spec:
               fieldPath: metadata.namespace
         - name: TZ
           value: {{ .Values.timezone | default "UTC" }}
-        {{- if .Values.cloudProvider }}
-        - name: CLOUD_PROVIDER
-          value: {{ .Values.cloudProvider }}
-        {{- end }}
-        {{- if .Values.k8sClusterName }}
-        - name: K8S_CLUSTER_NAME
-          value: {{ .Values.k8sClusterName }}
-        {{- end }}
-        {{- if .Values.awsRegion }}
-        - name: AWS_REGION
-          value: {{ .Values.awsRegion }}
-        {{- end }}
       - name: kube-rbac-proxy
         image: quay.io/brancz/kube-rbac-proxy:v0.13.1
         imagePullPolicy: {{ .Values.controllerManager.imagePullPolicy | default "IfNotPresent" }}
         args:
         - --secure-listen-address=0.0.0.0:8443
-        - --upstream=http:://127.0.0.1:{{ .Values.controllerManager.metricPort }}/
+        - --upstream=http://127.0.0.1:{{ .Values.controllerManager.metricPort }}/
         - --logtostderr=true
         - --v=0
         ports:

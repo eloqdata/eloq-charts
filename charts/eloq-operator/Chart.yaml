@@ -1,8 +1,8 @@
 apiVersion: v2
 name: eloq-operator
 description: A Helm chart for deploying EloqDB Operator to Kubernetes.
-version: 2.1.12
-appVersion: "4.0.14"
+version: 1.0.0
+appVersion: 1.0.0
 keywords:
   - database
   - newsql
@@ -19,7 +19,7 @@ dependencies:
     alias: certmanager
     repository: https://charts.jetstack.io
     condition: cert-manager.enabled
-    version: ">=1.13.1"
+    version: ">=1.19.2"
 
 source:
   - https://github.com/monographdb/eloq-operator

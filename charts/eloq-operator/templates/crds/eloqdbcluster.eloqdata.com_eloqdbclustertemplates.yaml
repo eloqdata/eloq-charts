@@ -1,0 +1,1050 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.5
+    {{- if .Values.keepCrds }}
+    "helm.sh/resource-policy": keep
+    {{- end }}
+  labels:
+    {{- include "eloq-operator.commonLabels" . | nindent 4 }}
+  name: eloqdbclustertemplates.eloqdbcluster.eloqdata.com
+spec:
+  group: eloqdbcluster.eloqdata.com
+  names:
+    categories:
+    - all
+    - eloq
+    kind: EloqDBClusterTemplate
+    listKind: EloqDBClusterTemplateList
+    plural: eloqdbclustertemplates
+    shortNames:
+    - eloqtemplate
+    singular: eloqdbclustertemplate
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Template readiness state
+      jsonPath: .status.phase
+      name: Ready
+      type: string
+    - description: Module type
+      jsonPath: .spec.tx.module.type
+      name: Module
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          EloqDBClusterTemplate is the CRD for defining reusable EloqDBCluster configuration templates.
+          Templates are immutable after creation (v1 enforces this via webhook).
+          To make changes, create a new template version.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              EloqDBClusterTemplateSpec defines the template for EloqDBCluster configuration.
+              This is the complete spec that will be used to create EloqDBCluster instances.
+            properties:
+              clusterDeployMode:
+                allOf:
+                - enum:
+                  - txOnly
+                  - logOnly
+                  - txWithLog
+                  - txWithExternalLog
+                  - txWithInternalLog
+                - enum:
+                  - txWithInternalLog
+                description: Which services to deploy
+                type: string
+              log:
+                description: |-
+                  LogService spec
+                  Required for txWithInternalLog mode.
+                properties:
+                  crossZone:
+                    default: false
+                    description: CrossZone If configured, the service is deployed
+                      across availability zones.
+                    type: boolean
+                  enableMetrics:
+                    default: "on"
+                    description: |-
+                      Enabled/disabled the metrics.
+                      Default: on
+                    type: string
+                  image:
+                    description: Image of the EloqDB component.  (Log/Tx)
+                    type: string
+                  imagePullPolicy:
+                    default: IfNotPresent
+                    description: |-
+                      PullPolicy for the image, which defaults to IfNotPresent.
+                      Default: IfNotPresent
+                    enum:
+                    - Always
+                    - Never
+                    - IfNotPresent
+                    type: string
+                  imagePullSecrets:
+                    description: |-
+                      (Optional) Secret name containing the dockerconfig to use for a registry that requires authentication. The secret
+                      must be configured first by the user.
+                    items:
+                      description: |-
+                        LocalObjectReference contains enough information to let you locate the
+                        referenced object inside the same namespace.
+                      properties:
+                        name:
+                          default: ""
+                          description: |-
+                            Name of the referent.
+                            This field is effectively required, but due to backwards compatibility is
+                            allowed to be empty. Instances of this type with an empty value here are
+                            almost certainly wrong.
+                            More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          type: string
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    type: array
+                  logGroup:
+                    default: 1
+                    description: |-
+                      LogGroup raft group size of LogService.
+                      Default: 1
+                    format: int32
+                    type: integer
+                    x-kubernetes-validations:
+                    - message: For now LogGroup is immutable
+                      rule: self == oldSelf
+                  logReplica:
+                    default: 1
+                    description: |-
+                      Number of members in the LogGroup
+                      Default: 1
+                    format: int32
+                    type: integer
+                    x-kubernetes-validations:
+                    - message: For now LogReplica is immutable
+                      rule: self == oldSelf
+                  logserverSnapshotInterval:
+                    default: 60
+                    description: LogserverSnapshotInterval defines the interval for
+                      log server snapshots.
+                    format: int32
+                    type: integer
+                  persistentVolume:
+                    description: 'Persistent volume to use: EBS'
+                    properties:
+                      diskType:
+                        default: gp3
+                        description: |-
+                          Cloud provisioned network storage disk type. Must match the cloud provider being used.
+                          AWS (EKS) supported types: gp2, gp3, io1, io2, st1, sc1
+                          GCP (GKE) supported types: pd-ssd, pd-extreme, pd-standard, hyperdisk-balanced, hyperdisk-extreme
+                          Baidu Cloud (CCE) supported types: hp1, ssd, cloud_hp1, premium_ssd, enhanced_ssd_pl1, enhanced_ssd_pl2
+                          Default: gp3
+                        enum:
+                        - enhanced_ssd_pl1
+                        - SSD_Enhanced
+                        - enhanced_ssd_pl2
+                        - enhanced_ssd_pl3
+                        - cloud_hp1
+                        - premium_ssd
+                        - hp1
+                        - ssd
+                        - gp2
+                        - gp3
+                        - io1
+                        - io2
+                        - st1
+                        - sc1
+                        - pd-ssd
+                        - pd-extreme
+                        - pd-standard
+                        - hyperdisk-balanced
+                        - hyperdisk-extreme
+                        type: string
+                      size:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: Storage size for the persistent volume claim
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - size
+                    type: object
+                  resources:
+                    description: Resources of the EloqDB component.
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This field depends on the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  rpcPort:
+                    default: 7001
+                    description: |-
+                      RPC Port of the LogService.
+                      Default: 7001
+                    format: int32
+                    type: integer
+                    x-kubernetes-validations:
+                    - message: For now RPCPort of LogService is immutable
+                      rule: self == oldSelf
+                  schedulePolicy:
+                    description: SchedulePolicy Specifies the scheduling policy for
+                      the service(TxService/LogService).
+                    properties:
+                      labelSelector:
+                        description: LabelSelector is used to find matching nodes
+                          or pods by labels.
+                        properties:
+                          matchExpressions:
+                            description: matchExpressions is a list of label selector
+                              requirements. The requirements are ANDed.
+                            items:
+                              description: |-
+                                A label selector requirement is a selector that contains values, a key, and an operator that
+                                relates the key and values.
+                              properties:
+                                key:
+                                  description: key is the label key that the selector
+                                    applies to.
+                                  type: string
+                                operator:
+                                  description: |-
+                                    operator represents a key's relationship to a set of values.
+                                    Valid operators are In, NotIn, Exists and DoesNotExist.
+                                  type: string
+                                values:
+                                  description: |-
+                                    values is an array of string values. If the operator is In or NotIn,
+                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                    the values array must be empty. This array is replaced during a strategic
+                                    merge patch.
+                                  items:
+                                    type: string
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                              required:
+                              - key
+                              - operator
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: |-
+                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                              map is equivalent to an element of matchExpressions, whose key field is "key", the
+                              operator is "In", and the values array contains only "value". The requirements are ANDed.
+                            type: object
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      policyType:
+                        allOf:
+                        - enum:
+                          - preferred
+                          - required
+                        - enum:
+                          - preferred
+                          - required
+                        default: preferred
+                        description: |-
+                          PolicyType The scheduling policy type is used to specify the behavior of the controller
+                          when the resource does not meet the scheduling policy..
+                          Default: required
+                        type: string
+                      preferredZone:
+                        description: PreferredZone If configured, the service prefers
+                          to be deployed in that availability zone.
+                        type: string
+                    required:
+                    - preferredZone
+                    type: object
+                  sharedLogCluster:
+                    description: |-
+                      SharedLogCluster is the external logService cluster,
+                      if configured, the EloqDBCluster would use existed log service
+                    properties:
+                      name:
+                        description: Name log cluster name
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                  store:
+                    description: StorageService spec
+                    properties:
+                      eloqStore:
+                        description: |-
+                          EloqStore config.
+                          Required when storageType is eloqStore. Mutually exclusive with rocksdbCloud.
+                        properties:
+                          cloudEndpoint:
+                            description: Cloud storage endpoint URL
+                            type: string
+                          cloudRegion:
+                            description: Cloud storage region
+                            type: string
+                          cloudStorePath:
+                            description: EloqStore cloud store path (bucket prefix/path)
+                            type: string
+                          dataAppendMode:
+                            default: true
+                            description: Data append mode
+                            type: boolean
+                          indexBufferPoolSize:
+                            description: Index buffer pool size (e.g., "5GB", "1GB")
+                            type: string
+                          localSpaceLimit:
+                            description: Local space limit (e.g., "2TB", "500GB")
+                            type: string
+                          manifestLimit:
+                            default: 100000
+                            description: Manifest limit
+                            format: int32
+                            type: integer
+                          openFilesLimit:
+                            default: 260000
+                            description: Open files limit
+                            format: int32
+                            type: integer
+                          rangeSliceMemoryLimitPercent:
+                            default: 30
+                            description: |-
+                              Range slice memory limit percent for EloqStore memory management
+                              Default: 30
+                            format: int32
+                            maximum: 100
+                            minimum: 1
+                            type: integer
+                        type: object
+                      googleCloudProject:
+                        description: GoogleCloudProject The Google Cloud Project ID
+                          (required for GCS)
+                        type: string
+                      objectStorageType:
+                        default: s3
+                        description: Cloud provider object storage type, s3 (aws s3)
+                          or gcs (google cloud storage)
+                        enum:
+                        - s3
+                        - gcs
+                        type: string
+                      rocksdbCloud:
+                        description: |-
+                          Object storage config.
+                          Required when storageType is rocksdbCloud. Mutually exclusive with eloqStore.
+                        properties:
+                          bucketName:
+                            description: BucketName
+                            type: string
+                          bucketPrefix:
+                            description: BucketPrefix
+                            type: string
+                          endpointUrl:
+                            default: ""
+                            description: EndpointUrl Custom S3-compatible endpoint
+                              URL (e.g., for MinIO or other S3-compatible storage)
+                            type: string
+                          fileDeletionDelay:
+                            default: 3600
+                            description: FileDeletionDelay The file deletion delay
+                              for RocksDB Cloud files
+                            format: int32
+                            type: integer
+                          objectPath:
+                            description: ObjectPath rocksdbCloud object path(uri)
+                              under the cloud object bucket.
+                            type: string
+                          readyTimeout:
+                            default: 10
+                            description: ReadyTimeout Timeout before RocksDB Cloud
+                              becoming ready on new log group leader
+                            format: int32
+                            type: integer
+                          region:
+                            description: Region Cloud provider object storage region
+                            type: string
+                          sstFileCacheSize:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: SSTFileCacheSize Local sst cache size
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      storageType:
+                        allOf:
+                        - enum:
+                          - rocksdbCloud
+                          - eloqStore
+                        - enum:
+                          - rocksdbCloud
+                          - eloqStore
+                        description: Storage service type
+                        type: string
+                    type: object
+                    x-kubernetes-validations:
+                    - message: rocksdbCloud config is required when storageType is
+                        rocksdbCloud
+                      rule: 'self.storageType == ''rocksdbCloud'' ? has(self.rocksdbCloud)
+                        : true'
+                    - message: eloqStore config must not be set when storageType is
+                        rocksdbCloud
+                      rule: 'self.storageType == ''rocksdbCloud'' ? !has(self.eloqStore)
+                        : true'
+                    - message: eloqStore config is required when storageType is eloqStore
+                      rule: 'self.storageType == ''eloqStore'' ? has(self.eloqStore)
+                        : true'
+                    - message: rocksdbCloud config must not be set when storageType
+                        is eloqStore
+                      rule: 'self.storageType == ''eloqStore'' ? !has(self.rocksdbCloud)
+                        : true'
+                  txLogRetentionSeconds:
+                    default: 180
+                    description: |-
+                      TxLogRetentionSeconds defines the retention period for transaction logs in seconds.
+                      Default: 180
+                    format: int32
+                    type: integer
+                  version:
+                    description: Version of EloqDB.
+                    type: string
+                required:
+                - persistentVolume
+                - store
+                type: object
+              s3SecretName:
+                description: |-
+                  S3SecretName specifies the name of the Kubernetes secret containing S3 credentials (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY)
+                  to be injected as environment variables into the pods for accessing S3-compatible storage services.
+                type: string
+              serviceAccountName:
+                description: ServiceAccountName For accessing aws resources. (EBS,
+                  ELB)
+                type: string
+              tx:
+                description: |-
+                  TxService spec
+                  Required for txWithInternalLog mode.
+                properties:
+                  authentication:
+                    description: Authentication indicates whether to enable authentication.
+                    type: boolean
+                  bootstrap:
+                    description: Bootstrap indicates whether to bootstrap the cluster.
+                    type: boolean
+                  ccStreamPort:
+                    default: 8010
+                    description: |-
+                      CCStream port
+                      Default: 8010
+                    format: int32
+                    type: integer
+                    x-kubernetes-validations:
+                    - message: For now TxService CCStreamPort is immutable
+                      rule: self == oldSelf
+                  checkpoint:
+                    default:
+                      delaySecond: 5
+                      intervalSecond: 10
+                    description: Checkpoint config of TxService
+                    properties:
+                      delaySecond:
+                        default: 5
+                        description: |-
+                          The time which ckpt_ts is less than min lock ts case mvcc is enabled. (Unit: second)
+                          Default: 5
+                        format: int32
+                        type: integer
+                      intervalSecond:
+                        default: 10
+                        description: |-
+                          Interval time of checkpointer. (Unit: second)
+                          Default: 10
+                        format: int32
+                        type: integer
+                    type: object
+                  createAdmin:
+                    description: CreateAdmin indicates whether to create an admin
+                      user.
+                    type: boolean
+                  enableMetrics:
+                    default: "on"
+                    description: |-
+                      Enabled/disabled the metrics.
+                      Default: on
+                    type: string
+                  ephemeralVolume:
+                    description: 'Ephemeral volume to use: Local SSD'
+                    properties:
+                      size:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: Storage size for the ephemeral volume
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - size
+                    type: object
+                  exposedService:
+                    default: true
+                    description: Whether to expose service with cloud provider LB
+                      instance.
+                    type: boolean
+                  externalIps:
+                    description: TxService external Ip
+                    items:
+                      type: string
+                    type: array
+                  image:
+                    description: Image of the EloqDB component.  (Log/Tx)
+                    type: string
+                  imagePullPolicy:
+                    default: IfNotPresent
+                    description: |-
+                      PullPolicy for the image, which defaults to IfNotPresent.
+                      Default: IfNotPresent
+                    enum:
+                    - Always
+                    - Never
+                    - IfNotPresent
+                    type: string
+                  imagePullSecrets:
+                    description: |-
+                      (Optional) Secret name containing the dockerconfig to use for a registry that requires authentication. The secret
+                      must be configured first by the user.
+                    items:
+                      description: |-
+                        LocalObjectReference contains enough information to let you locate the
+                        referenced object inside the same namespace.
+                      properties:
+                        name:
+                          default: ""
+                          description: |-
+                            Name of the referent.
+                            This field is effectively required, but due to backwards compatibility is
+                            allowed to be empty. Instances of this type with an empty value here are
+                            almost certainly wrong.
+                            More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          type: string
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    type: array
+                  metricPort:
+                    default: 18081
+                    description: |-
+                      Metrics collector Port number
+                      Default: 18081
+                    format: int32
+                    type: integer
+                  module:
+                    description: User-facing module specification.
+                    properties:
+                      port:
+                        description: |-
+                          Port to which the user is connected. This port is currently the connection port for EloqSQL, EloqKV, or EloqDoc.
+                          It is required to be set.
+                        type: integer
+                      type:
+                        allOf:
+                        - enum:
+                          - eloqsql
+                          - eloqkv
+                          - eloqdoc
+                        - enum:
+                          - eloqsql
+                          - eloqkv
+                          - eloqdoc
+                        description: ModuleType for user interaction with eloq.
+                        type: string
+                    required:
+                    - port
+                    - type
+                    type: object
+                  replica:
+                    description: Replicas of Pods TxService.
+                    format: int32
+                    type: integer
+                    x-kubernetes-validations:
+                    - message: For now TxService Replica is immutable
+                      rule: self == oldSelf
+                  resources:
+                    description: Resources of the EloqDB component.
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This field depends on the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  schedulePolicy:
+                    description: SchedulePolicy Specifies the scheduling policy for
+                      the service(TxService/LogService).
+                    properties:
+                      labelSelector:
+                        description: LabelSelector is used to find matching nodes
+                          or pods by labels.
+                        properties:
+                          matchExpressions:
+                            description: matchExpressions is a list of label selector
+                              requirements. The requirements are ANDed.
+                            items:
+                              description: |-
+                                A label selector requirement is a selector that contains values, a key, and an operator that
+                                relates the key and values.
+                              properties:
+                                key:
+                                  description: key is the label key that the selector
+                                    applies to.
+                                  type: string
+                                operator:
+                                  description: |-
+                                    operator represents a key's relationship to a set of values.
+                                    Valid operators are In, NotIn, Exists and DoesNotExist.
+                                  type: string
+                                values:
+                                  description: |-
+                                    values is an array of string values. If the operator is In or NotIn,
+                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                    the values array must be empty. This array is replaced during a strategic
+                                    merge patch.
+                                  items:
+                                    type: string
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                              required:
+                              - key
+                              - operator
+                              type: object
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          matchLabels:
+                            additionalProperties:
+                              type: string
+                            description: |-
+                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                              map is equivalent to an element of matchExpressions, whose key field is "key", the
+                              operator is "In", and the values array contains only "value". The requirements are ANDed.
+                            type: object
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      policyType:
+                        allOf:
+                        - enum:
+                          - preferred
+                          - required
+                        - enum:
+                          - preferred
+                          - required
+                        default: preferred
+                        description: |-
+                          PolicyType The scheduling policy type is used to specify the behavior of the controller
+                          when the resource does not meet the scheduling policy..
+                          Default: required
+                        type: string
+                      preferredZone:
+                        description: PreferredZone If configured, the service prefers
+                          to be deployed in that availability zone.
+                        type: string
+                    required:
+                    - preferredZone
+                    type: object
+                  store:
+                    description: StorageService spec
+                    properties:
+                      eloqStore:
+                        description: |-
+                          EloqStore config.
+                          Required when storageType is eloqStore. Mutually exclusive with rocksdbCloud.
+                        properties:
+                          cloudEndpoint:
+                            description: Cloud storage endpoint URL
+                            type: string
+                          cloudRegion:
+                            description: Cloud storage region
+                            type: string
+                          cloudStorePath:
+                            description: EloqStore cloud store path (bucket prefix/path)
+                            type: string
+                          dataAppendMode:
+                            default: true
+                            description: Data append mode
+                            type: boolean
+                          indexBufferPoolSize:
+                            description: Index buffer pool size (e.g., "5GB", "1GB")
+                            type: string
+                          localSpaceLimit:
+                            description: Local space limit (e.g., "2TB", "500GB")
+                            type: string
+                          manifestLimit:
+                            default: 100000
+                            description: Manifest limit
+                            format: int32
+                            type: integer
+                          openFilesLimit:
+                            default: 260000
+                            description: Open files limit
+                            format: int32
+                            type: integer
+                          rangeSliceMemoryLimitPercent:
+                            default: 30
+                            description: |-
+                              Range slice memory limit percent for EloqStore memory management
+                              Default: 30
+                            format: int32
+                            maximum: 100
+                            minimum: 1
+                            type: integer
+                        type: object
+                      googleCloudProject:
+                        description: GoogleCloudProject The Google Cloud Project ID
+                          (required for GCS)
+                        type: string
+                      objectStorageType:
+                        default: s3
+                        description: Cloud provider object storage type, s3 (aws s3)
+                          or gcs (google cloud storage)
+                        enum:
+                        - s3
+                        - gcs
+                        type: string
+                      rocksdbCloud:
+                        description: |-
+                          Object storage config.
+                          Required when storageType is rocksdbCloud. Mutually exclusive with eloqStore.
+                        properties:
+                          bucketName:
+                            description: BucketName
+                            type: string
+                          bucketPrefix:
+                            description: BucketPrefix
+                            type: string
+                          endpointUrl:
+                            default: ""
+                            description: EndpointUrl Custom S3-compatible endpoint
+                              URL (e.g., for MinIO or other S3-compatible storage)
+                            type: string
+                          fileDeletionDelay:
+                            default: 3600
+                            description: FileDeletionDelay The file deletion delay
+                              for RocksDB Cloud files
+                            format: int32
+                            type: integer
+                          objectPath:
+                            description: ObjectPath rocksdbCloud object path(uri)
+                              under the cloud object bucket.
+                            type: string
+                          readyTimeout:
+                            default: 10
+                            description: ReadyTimeout Timeout before RocksDB Cloud
+                              becoming ready on new log group leader
+                            format: int32
+                            type: integer
+                          region:
+                            description: Region Cloud provider object storage region
+                            type: string
+                          sstFileCacheSize:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: SSTFileCacheSize Local sst cache size
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      storageType:
+                        allOf:
+                        - enum:
+                          - rocksdbCloud
+                          - eloqStore
+                        - enum:
+                          - rocksdbCloud
+                          - eloqStore
+                        description: Storage service type
+                        type: string
+                    type: object
+                    x-kubernetes-validations:
+                    - message: rocksdbCloud config is required when storageType is
+                        rocksdbCloud
+                      rule: 'self.storageType == ''rocksdbCloud'' ? has(self.rocksdbCloud)
+                        : true'
+                    - message: eloqStore config must not be set when storageType is
+                        rocksdbCloud
+                      rule: 'self.storageType == ''rocksdbCloud'' ? !has(self.eloqStore)
+                        : true'
+                    - message: eloqStore config is required when storageType is eloqStore
+                      rule: 'self.storageType == ''eloqStore'' ? has(self.eloqStore)
+                        : true'
+                    - message: rocksdbCloud config must not be set when storageType
+                        is eloqStore
+                      rule: 'self.storageType == ''eloqStore'' ? !has(self.rocksdbCloud)
+                        : true'
+                  transaction:
+                    default:
+                      enableMVCC: "off"
+                      isolation: READ-COMMITTED
+                      protocol: OCC
+                    description: Transaction config of TxService
+                    properties:
+                      enableMVCC:
+                        default: "OFF"
+                        description: |-
+                          Whether to enable MVCC.
+                          Default: OFF
+                        type: string
+                      isolation:
+                        default: READ-COMMITTED
+                        description: |-
+                          Transaction Isolation Level
+                          Default: READ-COMMITTED
+                        type: string
+                      protocol:
+                        default: OCC
+                        description: |-
+                          Transaction implementation protocol occ or locking.
+                          Default: OCC
+                        type: string
+                    type: object
+                  version:
+                    description: Version of EloqDB.
+                    type: string
+                required:
+                - authentication
+                - bootstrap
+                - createAdmin
+                - ephemeralVolume
+                - exposedService
+                - module
+                - replica
+                - store
+                type: object
+            required:
+            - clusterDeployMode
+            type: object
+            x-kubernetes-validations:
+            - message: log spec is required for txWithInternalLog mode
+              rule: 'self.clusterDeployMode == ''txWithInternalLog'' ? has(self.log)
+                : true'
+            - message: tx spec is required for txWithInternalLog mode
+              rule: 'self.clusterDeployMode == ''txWithInternalLog'' ? has(self.tx)
+                : true'
+            - message: sharedLogCluster must not be set for txWithInternalLog mode
+              rule: 'has(self.log) && has(self.log.sharedLogCluster) ? self.clusterDeployMode
+                != ''txWithInternalLog'' : true'
+          status:
+            description: EloqDBClusterTemplateStatus defines the observed state of
+              EloqDBClusterTemplate
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                  of the template's state
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              observedGeneration:
+                description: ObservedGeneration is the generation observed by the
+                  controller
+                format: int64
+                type: integer
+              phase:
+                description: Phase represents the current phase of the template (Ready
+                  or NotReady)
+                enum:
+                - Ready
+                - NotReady
+                type: string
+            type: object
+        required:
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

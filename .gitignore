@@ -1,0 +1,16 @@
+# MacOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# Helm
+*.tgz
+# We usually want to keep Chart.lock to lock dependency versions
+# *.lock
+
+# Temporary files
+tmp/
+temp/

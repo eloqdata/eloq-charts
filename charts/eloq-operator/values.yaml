@@ -2,23 +2,20 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-appendReleaseSuffix: false
-# cloudProvider: "aws"
-# k8sClusterName: "eloqdb-dev"
-# awsRegion: "ap-northeast-1"
 timezone: UTC
 
 ## controller manager
+## Note: This operator requires Go 1.24+ and includes improved cluster naming with date prefixes
 controllerManager:
   # nodeSelector:
   #   eloqdata.com/node: control-plane
   serviceAccount:
-    name: "eloq-operator-controller-manager-sa"
+    name: "eloq-operator-controller-manager"
     annotations: {}
   image:
     repository: eloqdata/eloq-operator
-    tag: 4.0.14
-  imagePullPolicy: IfNotPresent
+    tag: 1.0.0
+  imagePullPolicy: Always
   ## In case the above image is pulled from a registry that requires
   ## authentication, a secret containing credentials can be added
   ## imagePullSecrets:
@@ -26,23 +23,27 @@ controllerManager:
   imagePullSecrets: {}
   resources:
     requests:
-      cpu: 1
-      memory: "1Gi"
+      cpu: 200m
+      memory: 256Mi
     limits:
-      cpu: 1
-      memory: "1Gi"
-  healthPort: 18080
-  metricPort: 18081
+      cpu: 500m
+      memory: 512Mi
+  healthPort: 8081
+  metricPort: 8080
   ## Set `watchNamespaces` to watch the specific namespaces, otherwise the controller by default watches all
   ## MonographDBCluster in all namespaces.
   ## e.g.
   ## watchNamespaces: "N1, N2, N3"
   watchNamespaces: ""
 
-  enabledLeaderElect: false
+  enableLeaderElection: true
+  ## Enable webhooks (validation/mutation)
+  enableWebhooks: true
+  ## Enable reconciler controllers (set to false for webhook-only mode)
+  enableReconciler: true
   ## This option is used to control whether to monitor eloq-operator.
   ## If it is true, the corresponding Service, ServiceMonitor (depends on kube-prometheus-stack) will be deployed.
-  enabledMonitor: false
+  enableMonitor: false
   ## This ServiceMonitor is to serve the eloq-operator's metrics
   ## controller manager.
   serviceMonitor:

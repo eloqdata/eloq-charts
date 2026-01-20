@@ -181,6 +181,32 @@ rules:
 - apiGroups:
   - eloqdbcluster.eloqdata.com
   resources:
+  - eloqdbclusterclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eloqdbcluster.eloqdata.com
+  resources:
+  - eloqdbclusterclaims/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eloqdbcluster.eloqdata.com
+  resources:
+  - eloqdbclusterclaims/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - eloqdbcluster.eloqdata.com
+  resources:
   - eloqdbclusters
   verbs:
   - create
@@ -200,6 +226,32 @@ rules:
   - eloqdbcluster.eloqdata.com
   resources:
   - eloqdbclusters/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - eloqdbcluster.eloqdata.com
+  resources:
+  - eloqdbclustertemplates
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - eloqdbcluster.eloqdata.com
+  resources:
+  - eloqdbclustertemplates/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - eloqdbcluster.eloqdata.com
+  resources:
+  - eloqdbclustertemplates/status
   verbs:
   - get
   - patch

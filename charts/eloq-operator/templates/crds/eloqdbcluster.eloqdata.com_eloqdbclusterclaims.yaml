@@ -1,0 +1,531 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.5
+    {{- if .Values.keepCrds }}
+    "helm.sh/resource-policy": keep
+    {{- end }}
+  labels:
+    {{- include "eloq-operator.commonLabels" . | nindent 4 }}
+  name: eloqdbclusterclaims.eloqdbcluster.eloqdata.com
+spec:
+  group: eloqdbcluster.eloqdata.com
+  names:
+    categories:
+    - all
+    - eloq
+    kind: EloqDBClusterClaim
+    listKind: EloqDBClusterClaimList
+    plural: eloqdbclusterclaims
+    shortNames:
+    - claim
+    - claims
+    singular: eloqdbclusterclaim
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.state
+      name: State
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.clusterRef.name
+      name: Cluster
+      type: string
+    - description: Available endpoints
+      jsonPath: .status.endpointAvailability
+      name: Endpoints
+      type: string
+    - jsonPath: .spec.templateRef.name
+      name: Template
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: EloqDBClusterClaim is the Schema for the eloqdbclusterclaims
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: EloqDBClusterClaimSpec defines the desired state of EloqDBClusterClaim
+            properties:
+              overrides:
+                description: |-
+                  Overrides allows claim-specific configuration overrides on top of the template
+                  Only storage configuration can be customized per claim
+                properties:
+                  logStore:
+                    description: LogStore allows overriding Log service storage configuration
+                    properties:
+                      eloqStore:
+                        description: |-
+                          EloqStore config.
+                          Required when storageType is eloqStore. Mutually exclusive with rocksdbCloud.
+                        properties:
+                          cloudEndpoint:
+                            description: Cloud storage endpoint URL
+                            type: string
+                          cloudRegion:
+                            description: Cloud storage region
+                            type: string
+                          cloudStorePath:
+                            description: EloqStore cloud store path (bucket prefix/path)
+                            type: string
+                          dataAppendMode:
+                            default: true
+                            description: Data append mode
+                            type: boolean
+                          indexBufferPoolSize:
+                            description: Index buffer pool size (e.g., "5GB", "1GB")
+                            type: string
+                          localSpaceLimit:
+                            description: Local space limit (e.g., "2TB", "500GB")
+                            type: string
+                          manifestLimit:
+                            default: 100000
+                            description: Manifest limit
+                            format: int32
+                            type: integer
+                          openFilesLimit:
+                            default: 260000
+                            description: Open files limit
+                            format: int32
+                            type: integer
+                          rangeSliceMemoryLimitPercent:
+                            default: 30
+                            description: |-
+                              Range slice memory limit percent for EloqStore memory management
+                              Default: 30
+                            format: int32
+                            maximum: 100
+                            minimum: 1
+                            type: integer
+                        type: object
+                      googleCloudProject:
+                        description: GoogleCloudProject The Google Cloud Project ID
+                          (required for GCS)
+                        type: string
+                      objectStorageType:
+                        default: s3
+                        description: Cloud provider object storage type, s3 (aws s3)
+                          or gcs (google cloud storage)
+                        enum:
+                        - s3
+                        - gcs
+                        type: string
+                      rocksdbCloud:
+                        description: |-
+                          Object storage config.
+                          Required when storageType is rocksdbCloud. Mutually exclusive with eloqStore.
+                        properties:
+                          bucketName:
+                            description: BucketName
+                            type: string
+                          bucketPrefix:
+                            description: BucketPrefix
+                            type: string
+                          endpointUrl:
+                            default: ""
+                            description: EndpointUrl Custom S3-compatible endpoint
+                              URL (e.g., for MinIO or other S3-compatible storage)
+                            type: string
+                          fileDeletionDelay:
+                            default: 3600
+                            description: FileDeletionDelay The file deletion delay
+                              for RocksDB Cloud files
+                            format: int32
+                            type: integer
+                          objectPath:
+                            description: ObjectPath rocksdbCloud object path(uri)
+                              under the cloud object bucket.
+                            type: string
+                          readyTimeout:
+                            default: 10
+                            description: ReadyTimeout Timeout before RocksDB Cloud
+                              becoming ready on new log group leader
+                            format: int32
+                            type: integer
+                          region:
+                            description: Region Cloud provider object storage region
+                            type: string
+                          sstFileCacheSize:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: SSTFileCacheSize Local sst cache size
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      storageType:
+                        allOf:
+                        - enum:
+                          - rocksdbCloud
+                          - eloqStore
+                        - enum:
+                          - rocksdbCloud
+                          - eloqStore
+                        description: Storage service type
+                        type: string
+                    type: object
+                    x-kubernetes-validations:
+                    - message: rocksdbCloud config is required when storageType is
+                        rocksdbCloud
+                      rule: 'self.storageType == ''rocksdbCloud'' ? has(self.rocksdbCloud)
+                        : true'
+                    - message: eloqStore config must not be set when storageType is
+                        rocksdbCloud
+                      rule: 'self.storageType == ''rocksdbCloud'' ? !has(self.eloqStore)
+                        : true'
+                    - message: eloqStore config is required when storageType is eloqStore
+                      rule: 'self.storageType == ''eloqStore'' ? has(self.eloqStore)
+                        : true'
+                    - message: rocksdbCloud config must not be set when storageType
+                        is eloqStore
+                      rule: 'self.storageType == ''eloqStore'' ? !has(self.rocksdbCloud)
+                        : true'
+                  txStore:
+                    description: TxStore allows overriding TX service storage configuration
+                    properties:
+                      eloqStore:
+                        description: |-
+                          EloqStore config.
+                          Required when storageType is eloqStore. Mutually exclusive with rocksdbCloud.
+                        properties:
+                          cloudEndpoint:
+                            description: Cloud storage endpoint URL
+                            type: string
+                          cloudRegion:
+                            description: Cloud storage region
+                            type: string
+                          cloudStorePath:
+                            description: EloqStore cloud store path (bucket prefix/path)
+                            type: string
+                          dataAppendMode:
+                            default: true
+                            description: Data append mode
+                            type: boolean
+                          indexBufferPoolSize:
+                            description: Index buffer pool size (e.g., "5GB", "1GB")
+                            type: string
+                          localSpaceLimit:
+                            description: Local space limit (e.g., "2TB", "500GB")
+                            type: string
+                          manifestLimit:
+                            default: 100000
+                            description: Manifest limit
+                            format: int32
+                            type: integer
+                          openFilesLimit:
+                            default: 260000
+                            description: Open files limit
+                            format: int32
+                            type: integer
+                          rangeSliceMemoryLimitPercent:
+                            default: 30
+                            description: |-
+                              Range slice memory limit percent for EloqStore memory management
+                              Default: 30
+                            format: int32
+                            maximum: 100
+                            minimum: 1
+                            type: integer
+                        type: object
+                      googleCloudProject:
+                        description: GoogleCloudProject The Google Cloud Project ID
+                          (required for GCS)
+                        type: string
+                      objectStorageType:
+                        default: s3
+                        description: Cloud provider object storage type, s3 (aws s3)
+                          or gcs (google cloud storage)
+                        enum:
+                        - s3
+                        - gcs
+                        type: string
+                      rocksdbCloud:
+                        description: |-
+                          Object storage config.
+                          Required when storageType is rocksdbCloud. Mutually exclusive with eloqStore.
+                        properties:
+                          bucketName:
+                            description: BucketName
+                            type: string
+                          bucketPrefix:
+                            description: BucketPrefix
+                            type: string
+                          endpointUrl:
+                            default: ""
+                            description: EndpointUrl Custom S3-compatible endpoint
+                              URL (e.g., for MinIO or other S3-compatible storage)
+                            type: string
+                          fileDeletionDelay:
+                            default: 3600
+                            description: FileDeletionDelay The file deletion delay
+                              for RocksDB Cloud files
+                            format: int32
+                            type: integer
+                          objectPath:
+                            description: ObjectPath rocksdbCloud object path(uri)
+                              under the cloud object bucket.
+                            type: string
+                          readyTimeout:
+                            default: 10
+                            description: ReadyTimeout Timeout before RocksDB Cloud
+                              becoming ready on new log group leader
+                            format: int32
+                            type: integer
+                          region:
+                            description: Region Cloud provider object storage region
+                            type: string
+                          sstFileCacheSize:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: SSTFileCacheSize Local sst cache size
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      storageType:
+                        allOf:
+                        - enum:
+                          - rocksdbCloud
+                          - eloqStore
+                        - enum:
+                          - rocksdbCloud
+                          - eloqStore
+                        description: Storage service type
+                        type: string
+                    type: object
+                    x-kubernetes-validations:
+                    - message: rocksdbCloud config is required when storageType is
+                        rocksdbCloud
+                      rule: 'self.storageType == ''rocksdbCloud'' ? has(self.rocksdbCloud)
+                        : true'
+                    - message: eloqStore config must not be set when storageType is
+                        rocksdbCloud
+                      rule: 'self.storageType == ''rocksdbCloud'' ? !has(self.eloqStore)
+                        : true'
+                    - message: eloqStore config is required when storageType is eloqStore
+                      rule: 'self.storageType == ''eloqStore'' ? has(self.eloqStore)
+                        : true'
+                    - message: rocksdbCloud config must not be set when storageType
+                        is eloqStore
+                      rule: 'self.storageType == ''eloqStore'' ? !has(self.rocksdbCloud)
+                        : true'
+                type: object
+              state:
+                default: Running
+                description: State represents the user's desired state (Running or
+                  Idle)
+                enum:
+                - Running
+                - Idle
+                type: string
+              templateRef:
+                description: TemplateRef references the EloqDBClusterTemplate to use
+                  for standalone clusters
+                properties:
+                  name:
+                    description: Name of the EloqDBClusterTemplate
+                    type: string
+                  namespace:
+                    description: Namespace of the EloqDBClusterTemplate (optional,
+                      defaults to cluster namespace)
+                    type: string
+                required:
+                - name
+                type: object
+            required:
+            - state
+            - templateRef
+            type: object
+          status:
+            description: EloqDBClusterClaimStatus defines the observed state of EloqDBClusterClaim
+            properties:
+              adminCreated:
+                description: |-
+                  AdminCreated indicates whether the admin user has been created for the bound cluster
+                  This is managed by the claim controller when the cluster is bound
+                type: boolean
+              availableZone:
+                description: |-
+                  AvailableZone represents the availability zone
+                  Inferred from the referenced template's preferredZone and cached here for quick access
+                type: string
+              clusterRef:
+                description: |-
+                  ClusterRef references the bound EloqDBCluster
+                  Set when phase is Bound
+                properties:
+                  name:
+                    description: Name of the EloqDBCluster
+                    type: string
+                  namespace:
+                    description: Namespace of the EloqDBCluster (usually same as claim
+                      namespace)
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+              conditions:
+                description: Conditions represent the latest available observations
+                  of the claim's state
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              dbUserSecretRef:
+                description: |-
+                  DBUserSecretRef references the Secret containing database user credentials
+                  Created by the claim controller and passed to the bound cluster
+                properties:
+                  name:
+                    description: Name of the Secret
+                    type: string
+                  namespace:
+                    description: Namespace of the Secret (optional, defaults to cluster
+                      namespace)
+                    type: string
+                required:
+                - name
+                type: object
+              endpointAvailability:
+                description: |-
+                  EndpointAvailability shows the endpoint availability in format "available/total"
+                  Example: "2/3" means 2 out of 3 endpoints are available
+                type: string
+              module:
+                allOf:
+                - enum:
+                  - eloqsql
+                  - eloqkv
+                  - eloqdoc
+                - enum:
+                  - eloqsql
+                  - eloqkv
+                  - eloqdoc
+                description: |-
+                  Module represents the module type (eloqsql, eloqkv, or eloqdoc)
+                  Inferred from the referenced template and cached here for quick access
+                type: string
+              observedGeneration:
+                description: ObservedGeneration reflects the generation of the most
+                  recently observed claim spec
+                format: int64
+                type: integer
+              phase:
+                description: Phase represents the current operational phase (controller-managed)
+                enum:
+                - Pending
+                - Binding
+                - Attaching
+                - Bound
+                - Releasing
+                - Released
+                - Migrating
+                type: string
+              serviceEndpoints:
+                description: |-
+                  ServiceEndpoints contains the service endpoints with their connectivity status
+                  Copied from bound cluster when ready, cleared when released
+                items:
+                  description: ServiceEndpoint represents a service endpoint with
+                    its connectivity status
+                  properties:
+                    address:
+                      description: Address is the service address in format pod-name.service-name.namespace:port
+                      type: string
+                    available:
+                      description: Available indicates whether the endpoint is reachable
+                        and healthy
+                      type: boolean
+                  required:
+                  - address
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - address
+                x-kubernetes-list-type: map
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
