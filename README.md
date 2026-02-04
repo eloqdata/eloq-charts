@@ -11,13 +11,15 @@ infrastructure used by `EloqDBCluster`.
 [Helm](https://helm.sh) must be installed to use the charts. Please refer to
 Helm's [documentation](https://helm.sh/docs) to get started.
 
-Once Helm has been set up correctly, add the repo as follows:
+Once Helm has been set up correctly, authenticate to GitHub Container Registry and install as follows:
 
 ```shell
-helm repo add eloqdata https://eloqdata.github.io/eloq-charts/
-helm repo update
-# for example: helm install eloq-operator eloqdata/eloq-operator --namespace eloq-operator-system
-helm install [RELEASE_NAME]  eloqdata/eloq-operator --namespace [NAMESPACE_NAME]
+# Authenticate (use GitHub Personal Access Token with read:packages scope)
+export GITHUB_TOKEN=your_github_token
+echo $GITHUB_TOKEN | helm registry login ghcr.io -u your-username --password-stdin
+
+# Install eloq-operator from OCI registry
+helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version 1.0.0 --namespace eloq-operator-system
 ```
 
 > NOTE: If the installation specifies namespace please create it first.
@@ -27,7 +29,7 @@ helm install [RELEASE_NAME]  eloqdata/eloq-operator --namespace [NAMESPACE_NAME]
 To schedule the eloq-operator controller manager on specific nodes, you can specify a nodeSelector:
 
 ```shell
-helm install [RELEASE_NAME] eloqdata/eloq-operator --namespace [NAMESPACE_NAME] \
+helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version 1.0.0 --namespace eloq-operator-system \
   --set controllerManager.nodeSelector."eloqdata\.com/node"=control-plane
 ```
 
@@ -36,8 +38,7 @@ helm install [RELEASE_NAME] eloqdata/eloq-operator --namespace [NAMESPACE_NAME] 
 To upgrade an existing eloq-operator release:
 
 ```shell
-helm repo update
-helm upgrade [RELEASE_NAME] eloqdata/eloq-operator --namespace [NAMESPACE_NAME]
+helm upgrade eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version 1.0.1 --namespace eloq-operator-system
 ```
 
 ### Check the installed eloq operator
@@ -97,8 +98,12 @@ Currently, eloq-monitoring only supports AWS. It requires you to create a servic
 so that it can access AWS resources outside the EKS cluster. This includes S3.
 
 ```shell
-# for example: helm install eloq-monitor-stack eloqdata/eloq-monitoring --namespace eloq-monitoring-ns
-helm install [RELEASE_NAME] eloqdata/eloq-monitoring --namespace [NAMESPACE]
+# Authenticate (use GitHub Personal Access Token with read:packages scope)
+export GITHUB_TOKEN=your_github_token
+echo $GITHUB_TOKEN | helm registry login ghcr.io -u your-username --password-stdin
+
+# Install eloq-monitoring from OCI registry
+helm install eloq-monitor-stack oci://ghcr.io/eloqdata/charts/eloq-monitoring --version 1.0.1 --namespace eloq-monitoring-ns
 ```
 
 ### eloq-monitoring chart arguments

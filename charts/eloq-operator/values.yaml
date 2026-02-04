@@ -37,6 +37,8 @@ controllerManager:
   watchNamespaces: ""
 
   enableLeaderElection: true
+  kubeApiQps: 100
+  kubeApiBurst: 200
   ## Enable webhooks (validation/mutation)
   enableWebhooks: true
   ## Enable reconciler controllers (set to false for webhook-only mode)

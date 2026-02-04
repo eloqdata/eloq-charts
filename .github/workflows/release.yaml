@@ -4,14 +4,18 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'charts/**'
+      - '.github/workflows/release.yaml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,12 +27,122 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
       - name: Add Helm repositories
         run: |
           helm repo add jetstack https://charts.jetstack.io
+          helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+          helm repo add grafana https://grafana.github.io/helm-charts
           helm repo update
 
-      - name: Run chart-releaser
-        uses: helm/chart-releaser-action@v1.7.0
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Get commit SHA
+        id: sha
+        run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Determine if main branch
+        id: branch
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "IS_MAIN=true" >> $GITHUB_OUTPUT
+          else
+            echo "IS_MAIN=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Package and Push All Charts to OCI Registry
         env:
-          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          IS_MAIN: ${{ steps.branch.outputs.IS_MAIN }}
+          SHORT_SHA: ${{ steps.sha.outputs.SHORT_SHA }}
+        run: |
+          for chart_dir in charts/*/; do
+            if [ -f "${chart_dir}Chart.yaml" ]; then
+              chart_name=$(basename "$chart_dir")
+              echo "Processing chart: $chart_name"
+              
+              # Build dependencies
+              helm dependency build "$chart_dir"
+              
+              if [ "$IS_MAIN" = "true" ]; then
+                # Main branch: use Chart.yaml version
+                VERSION=$(grep '^version:' "${chart_dir}Chart.yaml" | awk '{print $2}')
+                echo "Using Chart.yaml version: $VERSION"
+              else
+                # Other branches: use 0.0.0-{commit-sha}
+                VERSION="0.0.0-${SHORT_SHA}"
+                echo "Using dev version: $VERSION"
+              fi
+              
+              # Package and push
+              helm package "$chart_dir" --version "$VERSION"
+              chart_package="${chart_name}-${VERSION}.tgz"
+              helm push "$chart_package" oci://ghcr.io/${{ github.repository_owner }}/charts
+              
+              echo "✅ Pushed $chart_name:$VERSION to ghcr.io/${{ github.repository_owner }}/charts"
+            fi
+          done
+
+      - name: Package All Charts for GitHub Release
+        env:
+          IS_MAIN: ${{ steps.branch.outputs.IS_MAIN }}
+          SHORT_SHA: ${{ steps.sha.outputs.SHORT_SHA }}
+        run: |
+          mkdir -p .release-packages
+          for chart_dir in charts/*/; do
+            if [ -f "${chart_dir}Chart.yaml" ]; then
+              chart_name=$(basename "$chart_dir")
+              
+              if [ "$IS_MAIN" = "true" ]; then
+                VERSION=$(grep '^version:' "${chart_dir}Chart.yaml" | awk '{print $2}')
+              else
+                VERSION="0.0.0-${SHORT_SHA}"
+              fi
+              
+              helm package "$chart_dir" --version "$VERSION" -d .release-packages
+              echo "✅ Packaged $chart_name:$VERSION for GitHub Release"
+            fi
+          done
+
+      - name: Get versions for release
+        if: github.ref == 'refs/heads/main'
+        id: versions
+        run: |
+          operator_version=$(grep '^version:' charts/eloq-operator/Chart.yaml | awk '{print $2}')
+          monitoring_version=$(grep '^version:' charts/eloq-monitoring/Chart.yaml | awk '{print $2}')
+          echo "OPERATOR_VERSION=$operator_version" >> $GITHUB_OUTPUT
+          echo "MONITORING_VERSION=$monitoring_version" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.versions.outputs.OPERATOR_VERSION }}
+          name: Release v${{ steps.versions.outputs.OPERATOR_VERSION }}
+          files: .release-packages/*.tgz
+          generate_release_notes: true
+          body: |
+            ## EloqData Helm Charts Release (OCI/GHCR)
+            
+            **Commit**: ${{ github.sha }}
+            **Branch**: main
+            
+            ### Chart Versions:
+            - eloq-operator: `${{ steps.versions.outputs.OPERATOR_VERSION }}`
+            - eloq-monitoring: `${{ steps.versions.outputs.MONITORING_VERSION }}`
+            
+            ### Installation using OCI Registry (GHCR):
+            
+            ```bash
+            # Authenticate
+            export GITHUB_TOKEN=your_github_token
+            echo $GITHUB_TOKEN | helm registry login ghcr.io -u your-username --password-stdin
+            
+            # Install charts
+            helm install eloq-operator oci://ghcr.io/${{ github.repository_owner }}/charts/eloq-operator --version ${{ steps.versions.outputs.OPERATOR_VERSION }}
+            helm install eloq-monitoring oci://ghcr.io/${{ github.repository_owner }}/charts/eloq-monitoring --version ${{ steps.versions.outputs.MONITORING_VERSION }}
+            ```
