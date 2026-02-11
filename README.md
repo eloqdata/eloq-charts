@@ -7,15 +7,11 @@ The current chart is for installing the eloq-operator (including CRD for `EloqDB
 [Helm](https://helm.sh) must be installed to use the charts. Please refer to
 Helm's [documentation](https://helm.sh/docs) to get started.
 
-Once Helm has been set up correctly, authenticate to GitHub Container Registry and install as follows:
+Once Helm has been set up correctly, install the chart directly from the OCI registry:
 
 ```shell
-# Authenticate (use GitHub Personal Access Token with read:packages scope)
-export GITHUB_TOKEN=your_github_token
-echo $GITHUB_TOKEN | helm registry login ghcr.io -u your-username --password-stdin
-
 # Install eloq-operator from OCI registry
-helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version 1.0.0 --namespace eloq-operator-system
+helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version 1.0.1 --namespace eloq-operator-system
 ```
 
 > NOTE: If the installation specifies namespace please create it first.
@@ -25,8 +21,17 @@ helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version
 To schedule the eloq-operator controller manager on specific nodes, you can specify a nodeSelector:
 
 ```shell
-helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version 1.0.0 --namespace eloq-operator-system \
+helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version 1.0.1 --namespace eloq-operator-system \
   --set controllerManager.nodeSelector."eloqdata\.com/node"=control-plane
+```
+
+#### Install with Specific Image Version
+
+To install the operator with a specific image version:
+
+```shell
+helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version 1.0.1 --namespace eloq-operator-system \
+  --set controllerManager.image.tag=1.0.1
 ```
 
 ### Upgrade the eloq-operator
@@ -40,8 +45,7 @@ helm upgrade eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version
 ### Check the installed eloq operator
 
 ```shell
-# for example: helm list --namespace eloq-operator-system / helm list --all --all-namespaces
-helm list --namespace [NAMESPACE_NAME]
+helm list --namespace eloq-operator-system
 ```
 
 ### Uninstall Helm Release and CRDs
@@ -53,7 +57,7 @@ preserving CRDs that you might want to keep for future use or to maintain data i
 To uninstall a Helm release, use the following command:
 
 ```shell
-helm uninstall [RELEASE_NAME] --namespace [NAMESPACE_NAME]
+helm uninstall eloq-operator --namespace eloq-operator-system
 ```
 
 In cases where you wish to delete the CRDs manually, use the following command:
@@ -76,7 +80,7 @@ eloq-op-sa"
 | controllerManager.serviceAccount.name        | string | eloq-operator-controller-manager-sa | The service account name of the eloq operator controller manager pods.                                      |
 | controllerManager.serviceAccount.annotations | object | {}                                  | Annotations for the `controllerManager.serviceAccount`.                                                     |
 | controllerManager.image.repository           | string | eloqdata/eloq-operator           | The image name of the eloq operator.                                                                        |
-| controllerManager.image.tag                  | string | v1.0.4                              | The version tag for eloq operator docker image.                                                             |
+| controllerManager.image.tag                  | string | 1.0.1                               | The version tag for eloq operator docker image.                                                             |
 | controllerManager.imagePullPolicy            | string | IfNotPresent                        | -                                                                                                           |
 | controllerManager.imagePullSecrets           | object | {}                                  | -                                                                                                           |
 | controllerManager.resources                  | object | Same format as k8s resource         | Resource requests and limits for eloq operator controller manager pods.                                     |
