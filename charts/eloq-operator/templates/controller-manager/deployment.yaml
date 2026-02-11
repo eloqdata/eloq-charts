@@ -48,6 +48,8 @@ spec:
         - --namespace={{ .Values.controllerManager.watchNamespaces }}
         {{- end }}
         - --crd-group=eloqdbcluster.eloqdata.com
+        - --kube-api-qps={{ .Values.controllerManager.kubeApiQps }}
+        - --kube-api-burst={{ .Values.controllerManager.kubeApiBurst }}
         {{- if .Values.controllerManager.enableLeaderElection }}
         - --leader-elect
         {{- else }}
@@ -93,6 +95,10 @@ spec:
               fieldPath: metadata.namespace
         - name: TZ
           value: {{ .Values.timezone | default "UTC" }}
+        - name: KUBERNETES_LIST_WATCH_LIST_ENABLED
+          value: "false"
+        - name: KUBE_FEATURE_WatchListClient
+          value: "false"
       - name: kube-rbac-proxy
         image: quay.io/brancz/kube-rbac-proxy:v0.13.1
         imagePullPolicy: {{ .Values.controllerManager.imagePullPolicy | default "IfNotPresent" }}
