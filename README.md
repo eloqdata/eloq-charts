@@ -11,7 +11,10 @@ Once Helm has been set up correctly, install the chart directly from the OCI reg
 
 ```shell
 # Install eloq-operator from OCI registry
-helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version 1.0.1 --namespace eloq-operator-system
+helm install eloq-operator \
+  oci://ghcr.io/eloqdata/charts/eloq-operator \
+  --version 1.0.1 \
+  --namespace eloq-operator-system
 ```
 
 > NOTE: If the installation specifies namespace please create it first.
@@ -21,7 +24,10 @@ helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version
 To schedule the eloq-operator controller manager on specific nodes, you can specify a nodeSelector:
 
 ```shell
-helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version 1.0.1 --namespace eloq-operator-system \
+helm install eloq-operator \
+  oci://ghcr.io/eloqdata/charts/eloq-operator \
+  --version 1.0.1 \
+  --namespace eloq-operator-system \
   --set controllerManager.nodeSelector."eloqdata\.com/node"=control-plane
 ```
 
@@ -30,7 +36,10 @@ helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version
 To install the operator with a specific image version:
 
 ```shell
-helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version 1.0.1 --namespace eloq-operator-system \
+helm install eloq-operator \
+  oci://ghcr.io/eloqdata/charts/eloq-operator \
+  --version 1.0.1 \
+  --namespace eloq-operator-system \
   --set controllerManager.image.tag=1.0.1
 ```
 
@@ -39,7 +48,10 @@ helm install eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version
 To upgrade an existing eloq-operator release:
 
 ```shell
-helm upgrade eloq-operator oci://ghcr.io/eloqdata/charts/eloq-operator --version 1.0.1 --namespace eloq-operator-system
+helm upgrade eloq-operator \
+  oci://ghcr.io/eloqdata/charts/eloq-operator \
+  --version 1.0.1 \
+  --namespace eloq-operator-system
 ```
 
 ### Check the installed eloq operator
