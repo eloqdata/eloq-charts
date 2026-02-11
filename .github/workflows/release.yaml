@@ -1,5 +1,7 @@
 name: Release EloqData Charts
 
+# Automatic release on main branch push
+# Manual release on other branches via workflow_dispatch (publishes dev versions)
 on:
   push:
     branches:
@@ -67,11 +69,11 @@ jobs:
               helm dependency build "$chart_dir"
 
               if [ "$IS_MAIN" = "true" ]; then
-                # Main branch: use Chart.yaml version
+                # Main branch: publish official release version
                 VERSION=$(grep '^version:' "${chart_dir}Chart.yaml" | awk '{print $2}')
                 echo "Using Chart.yaml version: $VERSION"
               else
-                # Other branches: use 0.0.0-{commit-sha}
+                # Non-main branches (manual dispatch only): publish dev version
                 VERSION="0.0.0-${SHORT_SHA}"
                 echo "Using dev version: $VERSION"
               fi
