@@ -37,7 +37,11 @@ controllerManager:
   watchNamespaces: ""
 
   enableLeaderElection: true
+  ## Maximum average QPS (queries per second) for the operator's client to the Kubernetes API server.
+  ## This value controls client-side throttling; lowering it reduces API load, raising it increases throughput.
   kubeApiQps: 100
+  ## Maximum burst of requests the operator's client can make to the Kubernetes API server above the QPS limit.
+  ## Typically set higher than kubeApiQps to allow short spikes; tune down if hitting API rate limits.
   kubeApiBurst: 200
   ## Enable webhooks (validation/mutation)
   enableWebhooks: true
