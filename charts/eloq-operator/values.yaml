@@ -2,8 +2,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-timezone: UTC
-
 ## controller manager
 ## Note: This operator requires Go 1.24+ and includes improved cluster naming with date prefixes
 controllerManager:
@@ -14,7 +12,7 @@ controllerManager:
     annotations: {}
   image:
     repository: eloqdata/eloq-operator
-    tag: 1.0.1
+    tag: 1.1.0
   imagePullPolicy: Always
   ## In case the above image is pulled from a registry that requires
   ## authentication, a secret containing credentials can be added
@@ -54,7 +52,11 @@ controllerManager:
   ## controller manager.
   serviceMonitor:
     release: kube-prometheus-stack
-  env: []
+  dsyncImage: us-west1-docker.pkg.dev/eloqdev/eloqcloud/eloq-dsync:0.1.0
+  redisShakeImage: us-west1-docker.pkg.dev/eloqdev/eloqcloud/redis-shake:4.5.0
+  cacheSyncPeriod: "1h"
+  googleCloudProject: ""
+  gcpPscVpc: ""
 
 ## Setting keepCrds to false will delete CRDs after helm uninstall the release
 keepCrds: true

@@ -1,9 +1,13 @@
+{{- /*
+Generated from eloq-operator/config/webhook/manifests.yaml via hack/sync_from_operator.py
+*/ -}}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: {{ include "eloq-operator.fullname" . }}-validating-webhook-configuration
   annotations:
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "eloq-operator.name" . }}-serving-cert
+    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "eloq-operator.name"
+      . }}-serving-cert'
   labels:
     app.kubernetes.io/component: webhook
     {{- include "eloq-operator.commonLabels" . | nindent 4 }}
@@ -17,10 +21,6 @@ webhooks:
       path: /validate-eloqdbcluster-eloqdata-com-v1alpha1-eloqdbcluster
   failurePolicy: Fail
   name: veloqdbcluster.kb.io
-  namespaceSelector:
-    matchExpressions:
-    - key: disable-namespace
-      operator: DoesNotExist
   rules:
   - apiGroups:
     - eloqdbcluster.eloqdata.com
@@ -31,7 +31,6 @@ webhooks:
     - UPDATE
     resources:
     - eloqdbclusters
-    scope: Namespaced
   sideEffects: None
   timeoutSeconds: 1
 - admissionReviewVersions:
@@ -43,10 +42,6 @@ webhooks:
       path: /validate-eloqdbcluster-eloqdata-com-v1alpha1-eloqdbclusterclaim
   failurePolicy: Fail
   name: veloqdbclusterclaim.kb.io
-  namespaceSelector:
-    matchExpressions:
-    - key: disable-namespace
-      operator: DoesNotExist
   rules:
   - apiGroups:
     - eloqdbcluster.eloqdata.com
@@ -58,7 +53,6 @@ webhooks:
     - DELETE
     resources:
     - eloqdbclusterclaims
-    scope: Namespaced
   sideEffects: None
   timeoutSeconds: 1
 - admissionReviewVersions:
@@ -70,10 +64,6 @@ webhooks:
       path: /validate-eloqdbcluster-eloqdata-com-v1alpha1-eloqdbclustertemplate
   failurePolicy: Fail
   name: veloqdbclustertemplate.kb.io
-  namespaceSelector:
-    matchExpressions:
-    - key: disable-namespace
-      operator: DoesNotExist
   rules:
   - apiGroups:
     - eloqdbcluster.eloqdata.com
@@ -85,6 +75,5 @@ webhooks:
     - DELETE
     resources:
     - eloqdbclustertemplates
-    scope: Namespaced
   sideEffects: None
   timeoutSeconds: 1

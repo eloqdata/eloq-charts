@@ -3,12 +3,10 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
     {{- if .Values.keepCrds }}
     "helm.sh/resource-policy": keep
     {{- end }}
-  labels:
-    {{- include "eloq-operator.commonLabels" . | nindent 4 }}
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: eloqdbclusterclaims.eloqdbcluster.eloqdata.com
 spec:
   group: eloqdbcluster.eloqdata.com
@@ -71,272 +69,134 @@ spec:
           spec:
             description: EloqDBClusterClaimSpec defines the desired state of EloqDBClusterClaim
             properties:
-              overrides:
+              bucketName:
                 description: |-
-                  Overrides allows claim-specific configuration overrides on top of the template
-                  Only storage configuration can be customized per claim
+                  BucketName is the shared object storage bucket suffix.
+                  The effective bucket name is bucketPrefix + bucketName.
+                type: string
+              bucketPrefix:
+                description: |-
+                  BucketPrefix is the shared object storage bucket prefix.
+                  The effective bucket name is bucketPrefix + bucketName.
+                type: string
+              enableDataStore:
+                default: true
+                description: |-
+                  EnableDataStore controls whether the claim runtime enables the data store path.
+                  Default: true
+                type: boolean
+              enableWal:
+                default: true
+                description: |-
+                  EnableWal controls whether write-ahead logging is enabled for the claim runtime.
+                  Default: true
+                type: boolean
+              exposeService:
+                description: |-
+                  ExposeService controls optional load balancer exposure for this claim.
+                  The operator always creates a claim-owned backend ClusterIP Service and,
+                  when requested here, reconciles dedicated internal and external Gateway
+                  load balancers on top of that backend.
+
+                  For internalLB and externalLB, the hostname is the client-facing DNS name
+                  covered by the shared certificate used by the per-claim Gateway listener.
+                  TLS is intended to be mandatory for both load balancer exposure types.
+                  When omitted, only the mandatory claim backend ClusterIP service is created.
                 properties:
-                  logStore:
-                    description: LogStore allows overriding Log service storage configuration
+                  externalLB:
+                    description: ExternalLB enables a public-facing load balancer
+                      (accessible from the internet).
+                    type: boolean
+                  externalLBHostname:
+                    description: |-
+                      ExternalLBHostname is the DNS hostname used for external load balancer exposure.
+                      Required when ExternalLB is enabled.
+                    minLength: 1
+                    type: string
+                  internalLB:
+                    description: InternalLB enables an internal load balancer (accessible
+                      within the VPC).
+                    type: boolean
+                  internalLBHostname:
+                    description: |-
+                      InternalLBHostname is the DNS hostname used for internal load balancer exposure.
+                      Required when InternalLB is enabled.
+                    minLength: 1
+                    type: string
+                  privateConnectivity:
+                    description: |-
+                      PrivateConnectivity enables provider-native private publication on top of the
+                      claim internal load balancer.
                     properties:
-                      eloqStore:
-                        description: |-
-                          EloqStore config.
-                          Required when storageType is eloqStore. Mutually exclusive with rocksdbCloud.
+                      aws:
+                        description: AWS contains AWS PrivateLink policy input. Only
+                          valid on EKS.
                         properties:
-                          cloudEndpoint:
-                            description: Cloud storage endpoint URL
-                            type: string
-                          cloudRegion:
-                            description: Cloud storage region
-                            type: string
-                          cloudStorePath:
-                            description: EloqStore cloud store path (bucket prefix/path)
-                            type: string
-                          dataAppendMode:
-                            default: true
-                            description: Data append mode
-                            type: boolean
-                          indexBufferPoolSize:
-                            description: Index buffer pool size (e.g., "5GB", "1GB")
-                            type: string
-                          localSpaceLimit:
-                            description: Local space limit (e.g., "2TB", "500GB")
-                            type: string
-                          manifestLimit:
-                            default: 100000
-                            description: Manifest limit
-                            format: int32
-                            type: integer
-                          openFilesLimit:
-                            default: 260000
-                            description: Open files limit
-                            format: int32
-                            type: integer
-                          rangeSliceMemoryLimitPercent:
-                            default: 30
+                          consumerEndpoints:
                             description: |-
-                              Range slice memory limit percent for EloqStore memory management
-                              Default: 30
-                            format: int32
-                            maximum: 100
-                            minimum: 1
-                            type: integer
+                              ConsumerEndpoints lists consumer-created interface VPC endpoints that the
+                              producer should explicitly accept after they appear.
+                            items:
+                              description: |-
+                                AWSConsumerEndpoint identifies one consumer AWS interface VPC endpoint that
+                                the producer should explicitly accept.
+                              properties:
+                                vpcEndpointId:
+                                  description: |-
+                                    VPCEndpointID is the AWS interface VPC endpoint ID created by the consumer.
+                                    The producer uses this value during the second-stage acceptance flow.
+                                  type: string
+                              type: object
+                            type: array
                         type: object
-                      googleCloudProject:
-                        description: GoogleCloudProject The Google Cloud Project ID
-                          (required for GCS)
-                        type: string
-                      objectStorageType:
-                        default: s3
-                        description: Cloud provider object storage type, s3 (aws s3)
-                          or gcs (google cloud storage)
-                        enum:
-                        - s3
-                        - gcs
-                        type: string
-                      rocksdbCloud:
-                        description: |-
-                          Object storage config.
-                          Required when storageType is rocksdbCloud. Mutually exclusive with eloqStore.
+                      gcp:
+                        description: GCP contains Private Service Connect policy input.
+                          Only valid on GKE.
                         properties:
-                          bucketName:
-                            description: BucketName
-                            type: string
-                          bucketPrefix:
-                            description: BucketPrefix
-                            type: string
-                          endpointUrl:
-                            default: ""
-                            description: EndpointUrl Custom S3-compatible endpoint
-                              URL (e.g., for MinIO or other S3-compatible storage)
-                            type: string
-                          fileDeletionDelay:
-                            default: 3600
-                            description: FileDeletionDelay The file deletion delay
-                              for RocksDB Cloud files
-                            format: int32
-                            type: integer
-                          objectPath:
-                            description: ObjectPath rocksdbCloud object path(uri)
-                              under the cloud object bucket.
-                            type: string
-                          readyTimeout:
-                            default: 10
-                            description: ReadyTimeout Timeout before RocksDB Cloud
-                              becoming ready on new log group leader
-                            format: int32
-                            type: integer
-                          region:
-                            description: Region Cloud provider object storage region
-                            type: string
-                          sstFileCacheSize:
-                            anyOf:
-                            - type: integer
-                            - type: string
-                            description: SSTFileCacheSize Local sst cache size
-                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                            x-kubernetes-int-or-string: true
-                        type: object
-                      storageType:
-                        allOf:
-                        - enum:
-                          - rocksdbCloud
-                          - eloqStore
-                        - enum:
-                          - rocksdbCloud
-                          - eloqStore
-                        description: Storage service type
-                        type: string
-                    type: object
-                    x-kubernetes-validations:
-                    - message: rocksdbCloud config is required when storageType is
-                        rocksdbCloud
-                      rule: 'self.storageType == ''rocksdbCloud'' ? has(self.rocksdbCloud)
-                        : true'
-                    - message: eloqStore config must not be set when storageType is
-                        rocksdbCloud
-                      rule: 'self.storageType == ''rocksdbCloud'' ? !has(self.eloqStore)
-                        : true'
-                    - message: eloqStore config is required when storageType is eloqStore
-                      rule: 'self.storageType == ''eloqStore'' ? has(self.eloqStore)
-                        : true'
-                    - message: rocksdbCloud config must not be set when storageType
-                        is eloqStore
-                      rule: 'self.storageType == ''eloqStore'' ? !has(self.rocksdbCloud)
-                        : true'
-                  txStore:
-                    description: TxStore allows overriding TX service storage configuration
-                    properties:
-                      eloqStore:
-                        description: |-
-                          EloqStore config.
-                          Required when storageType is eloqStore. Mutually exclusive with rocksdbCloud.
-                        properties:
-                          cloudEndpoint:
-                            description: Cloud storage endpoint URL
-                            type: string
-                          cloudRegion:
-                            description: Cloud storage region
-                            type: string
-                          cloudStorePath:
-                            description: EloqStore cloud store path (bucket prefix/path)
-                            type: string
-                          dataAppendMode:
-                            default: true
-                            description: Data append mode
-                            type: boolean
-                          indexBufferPoolSize:
-                            description: Index buffer pool size (e.g., "5GB", "1GB")
-                            type: string
-                          localSpaceLimit:
-                            description: Local space limit (e.g., "2TB", "500GB")
-                            type: string
-                          manifestLimit:
-                            default: 100000
-                            description: Manifest limit
-                            format: int32
-                            type: integer
-                          openFilesLimit:
-                            default: 260000
-                            description: Open files limit
-                            format: int32
-                            type: integer
-                          rangeSliceMemoryLimitPercent:
-                            default: 30
+                          consumerEndpoints:
                             description: |-
-                              Range slice memory limit percent for EloqStore memory management
-                              Default: 30
-                            format: int32
-                            maximum: 100
-                            minimum: 1
-                            type: integer
+                              ConsumerEndpoints lists consumer PSC endpoints allowed to connect.
+                              Each entry is a consumer forwarding rule URI. When this list is empty, the
+                              service is still published, but new consumer endpoints remain pending until
+                              a later claim update explicitly approves them.
+                            items:
+                              description: GCPConsumerEndpoint identifies one consumer
+                                PSC endpoint allowed to connect.
+                              properties:
+                                endpointUri:
+                                  description: |-
+                                    EndpointURI is the fully qualified consumer PSC endpoint forwarding rule URI.
+                                    The producer copies this value into the GCP service attachment accept list.
+                                  type: string
+                              type: object
+                            type: array
                         type: object
-                      googleCloudProject:
-                        description: GoogleCloudProject The Google Cloud Project ID
-                          (required for GCS)
-                        type: string
-                      objectStorageType:
-                        default: s3
-                        description: Cloud provider object storage type, s3 (aws s3)
-                          or gcs (google cloud storage)
-                        enum:
-                        - s3
-                        - gcs
-                        type: string
-                      rocksdbCloud:
-                        description: |-
-                          Object storage config.
-                          Required when storageType is rocksdbCloud. Mutually exclusive with eloqStore.
-                        properties:
-                          bucketName:
-                            description: BucketName
-                            type: string
-                          bucketPrefix:
-                            description: BucketPrefix
-                            type: string
-                          endpointUrl:
-                            default: ""
-                            description: EndpointUrl Custom S3-compatible endpoint
-                              URL (e.g., for MinIO or other S3-compatible storage)
-                            type: string
-                          fileDeletionDelay:
-                            default: 3600
-                            description: FileDeletionDelay The file deletion delay
-                              for RocksDB Cloud files
-                            format: int32
-                            type: integer
-                          objectPath:
-                            description: ObjectPath rocksdbCloud object path(uri)
-                              under the cloud object bucket.
-                            type: string
-                          readyTimeout:
-                            default: 10
-                            description: ReadyTimeout Timeout before RocksDB Cloud
-                              becoming ready on new log group leader
-                            format: int32
-                            type: integer
-                          region:
-                            description: Region Cloud provider object storage region
-                            type: string
-                          sstFileCacheSize:
-                            anyOf:
-                            - type: integer
-                            - type: string
-                            description: SSTFileCacheSize Local sst cache size
-                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                            x-kubernetes-int-or-string: true
-                        type: object
-                      storageType:
-                        allOf:
-                        - enum:
-                          - rocksdbCloud
-                          - eloqStore
-                        - enum:
-                          - rocksdbCloud
-                          - eloqStore
-                        description: Storage service type
-                        type: string
                     type: object
-                    x-kubernetes-validations:
-                    - message: rocksdbCloud config is required when storageType is
-                        rocksdbCloud
-                      rule: 'self.storageType == ''rocksdbCloud'' ? has(self.rocksdbCloud)
-                        : true'
-                    - message: eloqStore config must not be set when storageType is
-                        rocksdbCloud
-                      rule: 'self.storageType == ''rocksdbCloud'' ? !has(self.eloqStore)
-                        : true'
-                    - message: eloqStore config is required when storageType is eloqStore
-                      rule: 'self.storageType == ''eloqStore'' ? has(self.eloqStore)
-                        : true'
-                    - message: rocksdbCloud config must not be set when storageType
-                        is eloqStore
-                      rule: 'self.storageType == ''eloqStore'' ? !has(self.rocksdbCloud)
-                        : true'
                 type: object
+                x-kubernetes-validations:
+                - message: internalLBHostname is required when internalLB is enabled
+                  rule: '!has(self.internalLB) || !self.internalLB || (has(self.internalLBHostname)
+                    && size(self.internalLBHostname) > 0)'
+                - message: externalLBHostname is required when externalLB is enabled
+                  rule: '!has(self.externalLB) || !self.externalLB || (has(self.externalLBHostname)
+                    && size(self.externalLBHostname) > 0)'
+                - message: internalLB must be enabled when privateConnectivity is
+                    configured
+                  rule: '!has(self.privateConnectivity) || (has(self.internalLB) &&
+                    self.internalLB)'
+              logStorePath:
+                description: LogStorePath is the object storage path for log store
+                  data.
+                type: string
+              replica:
+                description: Replica is the tx service replica count. Only 1 is currently
+                  supported.
+                enum:
+                - 1
+                format: int32
+                type: integer
               state:
-                default: Running
+                default: Idle
                 description: State represents the user's desired state (Running or
                   Idle)
                 enum:
@@ -357,6 +217,15 @@ spec:
                 required:
                 - name
                 type: object
+              txStorePath:
+                description: TxStorePath is the object storage path for tx store data.
+                type: string
+              zones:
+                description: Zones lists the allowed availability zones for service
+                  placement.
+                items:
+                  type: string
+                type: array
             required:
             - state
             - templateRef
@@ -372,7 +241,7 @@ spec:
               availableZone:
                 description: |-
                   AvailableZone represents the availability zone
-                  Inferred from the referenced template's preferredZone and cached here for quick access
+                  Inferred from the claim's first configured zone and cached here for quick access
                 type: string
               clusterRef:
                 description: |-
@@ -471,18 +340,365 @@ spec:
                   EndpointAvailability shows the endpoint availability in format "available/total"
                   Example: "2/3" means 2 out of 3 endpoints are available
                 type: string
+              exposeServiceStatus:
+                description: |-
+                  ExposeService records the backend ClusterIP address, any enabled load
+                  balancer exposure addresses, any nested private connectivity state, and
+                  exposure readiness conditions.
+                properties:
+                  clusterIP:
+                    description: |-
+                      ClusterIP is the assigned cluster-internal address of the always-created
+                      backend ClusterIP service.
+                    type: string
+                  externalLBAddress:
+                    description: |-
+                      ExternalLBAddress is the provider-assigned address reported by the claim
+                      Gateway for external load balancer exposure.
+                    type: string
+                  externalLBHostname:
+                    description: |-
+                      ExternalLBHostname is the hostname-based access address for external TLS exposure.
+                      Empty when ExternalLB is not enabled.
+                    type: string
+                  externalLBReady:
+                    description: ExternalLBReady records readiness for the external
+                      Gateway exposure path.
+                    properties:
+                      lastTransitionTime:
+                        description: |-
+                          lastTransitionTime is the last time the condition transitioned from one status to another.
+                          This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description: |-
+                          message is a human readable message indicating details about the transition.
+                          This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description: |-
+                          observedGeneration represents the .metadata.generation that the condition was set based upon.
+                          For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                          with respect to the current state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description: |-
+                          reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                          Producers of specific condition types may define expected values and meanings for this field,
+                          and whether the values are considered a guaranteed API.
+                          The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False,
+                          Unknown.
+                        enum:
+                        - "True"
+                        - "False"
+                        - Unknown
+                        type: string
+                      type:
+                        description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                    - lastTransitionTime
+                    - message
+                    - reason
+                    - status
+                    - type
+                    type: object
+                  internalLBAddress:
+                    description: |-
+                      InternalLBAddress is the provider-assigned address reported by the claim
+                      Gateway for internal load balancer exposure.
+                    type: string
+                  internalLBHostname:
+                    description: |-
+                      InternalLBHostname is the hostname-based access address for internal TLS exposure.
+                      Empty when InternalLB is not enabled.
+                    type: string
+                  internalLBReady:
+                    description: InternalLBReady records readiness for the internal
+                      Gateway exposure path.
+                    properties:
+                      lastTransitionTime:
+                        description: |-
+                          lastTransitionTime is the last time the condition transitioned from one status to another.
+                          This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description: |-
+                          message is a human readable message indicating details about the transition.
+                          This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description: |-
+                          observedGeneration represents the .metadata.generation that the condition was set based upon.
+                          For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                          with respect to the current state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description: |-
+                          reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                          Producers of specific condition types may define expected values and meanings for this field,
+                          and whether the values are considered a guaranteed API.
+                          The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False,
+                          Unknown.
+                        enum:
+                        - "True"
+                        - "False"
+                        - Unknown
+                        type: string
+                      type:
+                        description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                    - lastTransitionTime
+                    - message
+                    - reason
+                    - status
+                    - type
+                    type: object
+                  privateConnectivity:
+                    description: |-
+                      PrivateConnectivity records provider-native private publication state on top
+                      of the claim internal load balancer.
+                    properties:
+                      aws:
+                        description: AWS contains AWS PrivateLink status details.
+                        properties:
+                          consumerEndpoints:
+                            description: ConsumerEndpoints reports the observed state
+                              for requested consumer VPC endpoint connections.
+                            items:
+                              description: |-
+                                AWSConsumerEndpointStatus reports the controller-projected state for a single
+                                consumer AWS interface VPC endpoint.
+                              properties:
+                                status:
+                                  description: |-
+                                    Status is the connection state tracked by the controller, such as
+                                    Requested, PendingAcceptance, or Available.
+                                  type: string
+                                vpcEndpointId:
+                                  description: VPCEndpointID is the consumer endpoint
+                                    ID requested in claim spec.
+                                  type: string
+                              type: object
+                            type: array
+                          endpointServiceId:
+                            description: EndpointServiceID is the provider-generated
+                              endpoint service identifier.
+                            type: string
+                          endpointServiceName:
+                            description: EndpointServiceName is the provider-generated
+                              endpoint service name.
+                            type: string
+                          privateDnsName:
+                            description: PrivateDNSName is the claim hostname published
+                              through PrivateLink.
+                            type: string
+                          privateDnsVerified:
+                            description: PrivateDNSVerified reports whether the AWS-side
+                              private DNS name is verified.
+                            type: boolean
+                        type: object
+                      cleaned:
+                        description: Cleaned records whether provider-native private
+                          connectivity resources are confirmed absent.
+                        properties:
+                          lastTransitionTime:
+                            description: |-
+                              lastTransitionTime is the last time the condition transitioned from one status to another.
+                              This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                            format: date-time
+                            type: string
+                          message:
+                            description: |-
+                              message is a human readable message indicating details about the transition.
+                              This may be an empty string.
+                            maxLength: 32768
+                            type: string
+                          observedGeneration:
+                            description: |-
+                              observedGeneration represents the .metadata.generation that the condition was set based upon.
+                              For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                              with respect to the current state of the instance.
+                            format: int64
+                            minimum: 0
+                            type: integer
+                          reason:
+                            description: |-
+                              reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                              Producers of specific condition types may define expected values and meanings for this field,
+                              and whether the values are considered a guaranteed API.
+                              The value should be a CamelCase string.
+                              This field may not be empty.
+                            maxLength: 1024
+                            minLength: 1
+                            pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                            type: string
+                          status:
+                            description: status of the condition, one of True, False,
+                              Unknown.
+                            enum:
+                            - "True"
+                            - "False"
+                            - Unknown
+                            type: string
+                          type:
+                            description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                            maxLength: 316
+                            pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                            type: string
+                        required:
+                        - lastTransitionTime
+                        - message
+                        - reason
+                        - status
+                        - type
+                        type: object
+                      gcp:
+                        description: GCP contains GCP Private Service Connect status
+                          details.
+                        properties:
+                          consumerEndpoints:
+                            description: ConsumerEndpoints reports the observed provider-side
+                              status for configured consumer endpoints.
+                            items:
+                              description: GCPConsumerEndpointStatus reports the observed
+                                provider-side state for a single consumer endpoint.
+                              properties:
+                                endpointUri:
+                                  description: EndpointURI is the endpoint URI requested
+                                    in claim spec.
+                                  type: string
+                                endpointUriWithId:
+                                  description: EndpointURIWithID is the numeric resource
+                                    ID URI reported by GCP after the endpoint is connected.
+                                  type: string
+                                pscConnectionId:
+                                  description: PSCConnectionID is the provider-assigned
+                                    PSC connection identifier.
+                                  type: string
+                                status:
+                                  description: Status is the provider-reported connection
+                                    state such as PENDING or ACCEPTED.
+                                  type: string
+                              type: object
+                            type: array
+                          pscSubnetName:
+                            description: |-
+                              PSCSubnetName is the PSC producer subnet resource name used by the service
+                              attachment.
+                            type: string
+                          pscSubnetUri:
+                            description: |-
+                              PSCSubnetURI is the fully qualified PSC producer subnet URI used by the
+                              service attachment.
+                            type: string
+                          serviceAttachmentName:
+                            description: ServiceAttachmentName is the service attachment
+                              resource name.
+                            type: string
+                          serviceAttachmentUri:
+                            description: ServiceAttachmentURI is the fully qualified
+                              PSC service attachment URI.
+                            type: string
+                        type: object
+                      hostname:
+                        description: Hostname is the required claim hostname used
+                          for private connectivity.
+                        type: string
+                      ready:
+                        description: Ready records whether private connectivity is
+                          ready for use.
+                        properties:
+                          lastTransitionTime:
+                            description: |-
+                              lastTransitionTime is the last time the condition transitioned from one status to another.
+                              This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                            format: date-time
+                            type: string
+                          message:
+                            description: |-
+                              message is a human readable message indicating details about the transition.
+                              This may be an empty string.
+                            maxLength: 32768
+                            type: string
+                          observedGeneration:
+                            description: |-
+                              observedGeneration represents the .metadata.generation that the condition was set based upon.
+                              For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                              with respect to the current state of the instance.
+                            format: int64
+                            minimum: 0
+                            type: integer
+                          reason:
+                            description: |-
+                              reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                              Producers of specific condition types may define expected values and meanings for this field,
+                              and whether the values are considered a guaranteed API.
+                              The value should be a CamelCase string.
+                              This field may not be empty.
+                            maxLength: 1024
+                            minLength: 1
+                            pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                            type: string
+                          status:
+                            description: status of the condition, one of True, False,
+                              Unknown.
+                            enum:
+                            - "True"
+                            - "False"
+                            - Unknown
+                            type: string
+                          type:
+                            description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                            maxLength: 316
+                            pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                            type: string
+                        required:
+                        - lastTransitionTime
+                        - message
+                        - reason
+                        - status
+                        - type
+                        type: object
+                    type: object
+                type: object
               module:
                 allOf:
                 - enum:
-                  - eloqsql
                   - eloqkv
                   - eloqdoc
                 - enum:
-                  - eloqsql
                   - eloqkv
                   - eloqdoc
                 description: |-
-                  Module represents the module type (eloqsql, eloqkv, or eloqdoc)
+                  Module represents the module type (eloqkv or eloqdoc)
                   Inferred from the referenced template and cached here for quick access
                 type: string
               observedGeneration:

@@ -1,0 +1,273 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    {{- if .Values.keepCrds }}
+    "helm.sh/resource-policy": keep
+    {{- end }}
+    controller-gen.kubebuilder.io/version: v0.16.5
+  name: importjobs.importjob.eloqdata.com
+spec:
+  group: importjob.eloqdata.com
+  names:
+    categories:
+    - all
+    - eloq
+    kind: ImportJob
+    listKind: ImportJobList
+    plural: importjobs
+    shortNames:
+    - ij
+    singular: importjob
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - description: Observed phase (only Running when dsync pod is ready)
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - description: Last progress fetch time
+      jsonPath: .status.progressUpdatedAt
+      name: Progress At
+      type: date
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ImportJob is the Schema for the importjobs API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ImportJobSpec defines the desired state of ImportJob
+            properties:
+              dsync:
+                description: Dsync is used when type=Dsync
+                properties:
+                  nodeSelector:
+                    additionalProperties:
+                      type: string
+                    description: NodeSelector for pod placement.
+                    type: object
+                  pingTimeout:
+                    default: 5s
+                    description: PingTimeout defaults to "5s".
+                    type: string
+                  resourceLimits:
+                    description: ResourceLimits for the dsync pod (optional; when
+                      set, all sub-fields apply).
+                    properties:
+                      cpuLimit:
+                        default: "1"
+                        type: string
+                      cpuRequest:
+                        default: 500m
+                        type: string
+                      memoryLimit:
+                        default: 1Gi
+                        type: string
+                      memoryRequest:
+                        default: 512Mi
+                        type: string
+                    type: object
+                  serverTimeout:
+                    default: 30s
+                    description: ServerTimeout defaults to "30s".
+                    type: string
+                  webPort:
+                    description: WebPort is the HTTP port for progress/monitoring
+                      (default 8080).
+                    type: integer
+                type: object
+              redisShake:
+                description: |-
+                  RedisShakeSpec is the type-specific spec when type=RedisShake.
+                  Source from spec.sourceConnectionString (Redis URL); target from spec.targetClusterRef.
+                  Image is read from operator env REDIS_SHAKE_IMAGE.
+                properties:
+                  logCompress:
+                    default: true
+                    description: LogCompress defaults to true.
+                    type: boolean
+                  logFile:
+                    default: shake.log
+                    description: LogFile defaults to "shake.log".
+                    type: string
+                  logInterval:
+                    default: 5
+                    description: LogInterval in seconds. Default 5.
+                    type: integer
+                  logLevel:
+                    default: warn
+                    description: LogLevel (e.g. debug, info, warn). Default "warn".
+                    type: string
+                  logMaxAge:
+                    default: 3
+                    description: LogMaxAge in days. Default 3.
+                    type: integer
+                  logMaxSize:
+                    default: 128
+                    description: LogMaxSize in MB. Default 128.
+                    type: integer
+                  logRotation:
+                    default: true
+                    description: LogRotation defaults to true.
+                    type: boolean
+                  nodeSelector:
+                    additionalProperties:
+                      type: string
+                    description: NodeSelector for pod placement.
+                    type: object
+                  statusPort:
+                    description: StatusPort for status/monitoring (default 8080).
+                    type: integer
+                type: object
+              sourceConnectionString:
+                description: SourceConnectionString is the source database connection
+                  string
+                type: string
+              state:
+                default: Running
+                description: State is the expected state. Default Running. Paused=replicas=0;
+                  Cancelled=terminal
+                enum:
+                - Running
+                - Paused
+                - Cancelled
+                type: string
+              targetClusterRef:
+                description: |-
+                  TargetClusterRef references the EloqDBClusterClaim for target endpoint
+                  The resolved endpoint is used as both DST and META for dsync
+                properties:
+                  name:
+                    description: Name of the EloqDBClusterClaim
+                    type: string
+                  namespace:
+                    description: Namespace of the EloqDBClusterClaim
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+              type:
+                description: Type is the import job type (Dsync, RedisShake)
+                enum:
+                - Dsync
+                - RedisShake
+                type: string
+            required:
+            - sourceConnectionString
+            - targetClusterRef
+            - type
+            type: object
+          status:
+            description: ImportJobStatus defines the observed state of ImportJob
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              phase:
+                description: Phase is the observed phase (actual state). Only Running
+                  when dsync pod is ready.
+                enum:
+                - Pending
+                - Preparing
+                - Running
+                - Failed
+                - Paused
+                - Cancelled
+                type: string
+              progress:
+                description: |-
+                  Progress is the raw JSON from the import backend (dsync progress "data" line or redis-shake status response).
+                  Interpret using spec.type (Dsync vs RedisShake). May be truncated if large.
+                type: string
+              progressUpdatedAt:
+                description: ProgressUpdatedAt is the last time progress was fetched.
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

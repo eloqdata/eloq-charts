@@ -8,6 +8,7 @@ on:
       - main
     paths:
       - "charts/**"
+      - "hack/**"
       - ".github/workflows/release.yaml"
   workflow_dispatch:
 
@@ -29,10 +30,21 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: python -m pip install --upgrade pip pyyaml
+
       - name: Install Helm
         uses: azure/setup-helm@v4
         with:
           version: v3.14.0
+
+      - name: Install kustomize
+        uses: imranismail/setup-kustomize@v2
 
       - name: Add Helm repositories
         run: |
@@ -45,6 +57,45 @@ jobs:
       - name: Get commit SHA
         id: sha
         run: echo "SHORT_SHA=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Read chart metadata
+        id: chart
+        run: |
+          chart_version=$(grep '^version:' charts/eloq-operator/Chart.yaml | awk '{print $2}' | tr -d '"')
+          app_version=$(grep '^appVersion:' charts/eloq-operator/Chart.yaml | awk '{print $2}' | tr -d '"')
+          echo "CHART_VERSION=$chart_version" >> $GITHUB_OUTPUT
+          echo "APP_VERSION=$app_version" >> $GITHUB_OUTPUT
+
+      - name: Resolve operator ref from appVersion
+        id: operator_ref
+        env:
+          APP_VERSION: ${{ steps.chart.outputs.APP_VERSION }}
+        run: |
+          if git ls-remote --exit-code --tags https://github.com/monographdb/eloq-operator.git "refs/tags/v${APP_VERSION}" >/dev/null 2>&1; then
+            echo "REF=v${APP_VERSION}" >> $GITHUB_OUTPUT
+          elif git ls-remote --exit-code --tags https://github.com/monographdb/eloq-operator.git "refs/tags/${APP_VERSION}" >/dev/null 2>&1; then
+            echo "REF=${APP_VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "Could not find tag for appVersion ${APP_VERSION} in monographdb/eloq-operator" >&2
+            exit 1
+          fi
+
+      - name: Checkout operator source
+        uses: actions/checkout@v4
+        with:
+          repository: monographdb/eloq-operator
+          ref: ${{ steps.operator_ref.outputs.REF }}
+          path: .operator-src
+          fetch-depth: 1
+
+      - name: Sync generated chart artifacts from operator appVersion
+        run: python3 hack/sync_from_operator.py sync --operator-repo .operator-src
+
+      - name: Ensure committed generated artifacts match appVersion
+        run: python3 hack/sync_from_operator.py check-sync --operator-repo .operator-src
+
+      - name: Verify synced chart
+        run: python3 hack/sync_from_operator.py verify
 
       - name: Determine if main branch
         id: branch
@@ -112,15 +163,17 @@ jobs:
         if: github.ref == 'refs/heads/main'
         id: versions
         run: |
-          operator_version=$(grep '^version:' charts/eloq-operator/Chart.yaml | awk '{print $2}')
-          echo "OPERATOR_VERSION=$operator_version" >> $GITHUB_OUTPUT
+          chart_version=$(grep '^version:' charts/eloq-operator/Chart.yaml | awk '{print $2}')
+          app_version=$(grep '^appVersion:' charts/eloq-operator/Chart.yaml | awk '{print $2}')
+          echo "CHART_VERSION=$chart_version" >> $GITHUB_OUTPUT
+          echo "APP_VERSION=$app_version" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.versions.outputs.OPERATOR_VERSION }}
-          name: Release v${{ steps.versions.outputs.OPERATOR_VERSION }}
+          tag_name: chart-v${{ steps.versions.outputs.CHART_VERSION }}
+          name: Chart Release v${{ steps.versions.outputs.CHART_VERSION }}
           files: .release-packages/*.tgz
           generate_release_notes: true
           body: |
@@ -128,9 +181,11 @@ jobs:
 
             **Commit**: ${{ github.sha }}
             **Branch**: main
+            **Operator Source**: `monographdb/eloq-operator@${{ steps.operator_ref.outputs.REF }}`
 
             ### Chart Versions:
-            - eloq-operator: `${{ steps.versions.outputs.OPERATOR_VERSION }}`
+            - eloq-operator chart version: `${{ steps.versions.outputs.CHART_VERSION }}`
+            - eloq-operator appVersion: `${{ steps.versions.outputs.APP_VERSION }}`
 
             ### Installation using OCI Registry (GHCR):
 
@@ -140,5 +195,5 @@ jobs:
             echo $GITHUB_TOKEN | helm registry login ghcr.io -u your-username --password-stdin
 
             # Install eloq-operator
-            helm install eloq-operator oci://ghcr.io/${{ github.repository_owner }}/charts/eloq-operator --version ${{ steps.versions.outputs.OPERATOR_VERSION }}
+            helm install eloq-operator oci://ghcr.io/${{ github.repository_owner }}/charts/eloq-operator --version ${{ steps.versions.outputs.CHART_VERSION }}
             ```

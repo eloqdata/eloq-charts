@@ -2,6 +2,61 @@
 
 The current chart is for installing the eloq-operator (including CRD for `EloqDBCluster`).
 
+### Development workflow
+
+This chart now treats `eloq-operator` as the source of truth for generated install artifacts:
+
+- CRDs come from `eloq-operator/config/crd/bases`
+- RBAC comes from `eloq-operator/config/rbac`
+- Webhook manifests come from `eloq-operator/config/webhook`
+- The controller manager `Deployment` base comes from `kustomize build eloq-operator/config/default`
+
+To sync generated artifacts from the sibling `eloq-operator` repository:
+
+```shell
+python3 hack/sync_from_operator.py sync
+```
+
+To sync from an explicit operator checkout:
+
+```shell
+python3 hack/sync_from_operator.py sync --operator-repo /path/to/eloq-operator
+```
+
+To sync only one category:
+
+```shell
+python3 hack/sync_from_operator.py sync crds
+python3 hack/sync_from_operator.py sync rbac
+python3 hack/sync_from_operator.py sync webhook
+python3 hack/sync_from_operator.py sync deployment
+```
+
+To validate the chart after syncing:
+
+```shell
+python3 hack/sync_from_operator.py verify
+```
+
+To verify that committed generated artifacts already match a given operator checkout
+without leaving generated changes in the working tree:
+
+```shell
+python3 hack/sync_from_operator.py check-sync --operator-repo /path/to/eloq-operator
+```
+
+If your local environment can reach the target Kubernetes API server, you can also run server-side schema validation:
+
+```shell
+python3 hack/sync_from_operator.py verify --server-dry-run
+```
+
+To render the chart to a file:
+
+```shell
+python3 hack/sync_from_operator.py render
+```
+
 ### Install the eloq-operator
 
 [Helm](https://helm.sh) must be installed to use the charts. Please refer to
@@ -14,10 +69,11 @@ Once Helm has been set up correctly, install the chart directly from the OCI reg
 helm install eloq-operator \
   oci://ghcr.io/eloqdata/charts/eloq-operator \
   --version 1.0.1 \
-  --namespace eloq-operator-system
+  --namespace eloq-operator-system \
+  --create-namespace
 ```
 
-> NOTE: If the installation specifies namespace please create it first.
+> NOTE: If the installation specifies namespace please create it first. Alternatively, use `--create-namespace` flag.
 
 #### Install with Node Selector
 
@@ -28,6 +84,7 @@ helm install eloq-operator \
   oci://ghcr.io/eloqdata/charts/eloq-operator \
   --version 1.0.1 \
   --namespace eloq-operator-system \
+  --create-namespace \
   --set controllerManager.nodeSelector."eloqdata\.com/node"=control-plane
 ```
 
@@ -40,6 +97,7 @@ helm install eloq-operator \
   oci://ghcr.io/eloqdata/charts/eloq-operator \
   --version 1.0.1 \
   --namespace eloq-operator-system \
+  --create-namespace \
   --set controllerManager.image.tag=1.0.1
 ```
 
@@ -89,17 +147,27 @@ eloq-op-sa"
 | Name                                         | Type   | Default Value                       | Description                                                                                                 |
 |----------------------------------------------|--------|-------------------------------------|-------------------------------------------------------------------------------------------------------------|
 | nameOverride                                 | string | ""                                  | Overrides the "eloq-operator" with this name.                                                               |
-| controllerManager.serviceAccount.name        | string | eloq-operator-controller-manager-sa | The service account name of the eloq operator controller manager pods.                                      |
+| controllerManager.serviceAccount.name        | string | eloq-operator-controller-manager | The service account name of the eloq operator controller manager pods.                                      |
 | controllerManager.serviceAccount.annotations | object | {}                                  | Annotations for the `controllerManager.serviceAccount`.                                                     |
-| controllerManager.image.repository           | string | eloqdata/eloq-operator           | The image name of the eloq operator.                                                                        |
-| controllerManager.image.tag                  | string | 1.0.1                               | The version tag for eloq operator docker image.                                                             |
-| controllerManager.imagePullPolicy            | string | IfNotPresent                        | -                                                                                                           |
+| controllerManager.image.repository           | string | eloqdata/eloq-operator              | The image name of the eloq operator.                                                                        |
+| controllerManager.image.tag                  | string | 1.1.0                               | The version tag for eloq operator docker image.                                                             |
+| controllerManager.imagePullPolicy            | string | Always                              | -                                                                                                           |
 | controllerManager.imagePullSecrets           | object | {}                                  | -                                                                                                           |
 | controllerManager.resources                  | object | Same format as k8s resource         | Resource requests and limits for eloq operator controller manager pods.                                     |
-| controllerManager.healthPort                 | string | 18080                               | -                                                                                                           |
-| controllerManager.metricPort                 | string | 18081                               | -                                                                                                           |
+| controllerManager.healthPort                 | string | 8081                                | -                                                                                                           |
+| controllerManager.metricPort                 | string | 8080                                | -                                                                                                           |
 | controllerManager.watchNamespaces            | string | "" (watch all namespaces)           | Set the controller to watch specific namespaces instead of all. (e.g. `""`, `"NAMESPACE"`, or `"N1,N2,N3"`) |
+| controllerManager.enableLeaderElection       | bool   | true                                | Enable leader election for the operator manager.                                                            |
+| controllerManager.kubeApiQps                 | int    | 100                                 | Client-side Kubernetes API QPS limit.                                                                       |
+| controllerManager.kubeApiBurst               | int    | 200                                 | Client-side Kubernetes API burst limit.                                                                     |
+| controllerManager.enableWebhooks             | bool   | true                                | Enable validating and mutating webhooks.                                                                    |
+| controllerManager.enableReconciler           | bool   | true                                | Enable reconciler controllers.                                                                              |
+| controllerManager.enableMonitor              | bool   | false                               | Enable metrics Service and ServiceMonitor resources.                                                        |
 | controllerManager.serviceMonitor.release     | string | kube-prometheus-stack               | Set the release name for the controller's metric service monitor.                                           |
-| controllerManager.env                        | list   | []                                  | The environment variable of the eloq operator controller manager pods.                                      |
+| controllerManager.dsyncImage                 | string | us-west1-docker.pkg.dev/eloqdev/eloqcloud/eloq-dsync:0.1.0 | Image used by Dsync-based import jobs.                                                                      |
+| controllerManager.redisShakeImage            | string | us-west1-docker.pkg.dev/eloqdev/eloqcloud/redis-shake:4.5.0 | Image used by RedisShake-based import jobs.                                                                 |
+| controllerManager.cacheSyncPeriod            | string | 1h                                  | Cache sync period passed to the operator manager.                                                           |
+| controllerManager.googleCloudProject         | string | ""                                  | Google Cloud project injected into the operator manager environment.                                        |
+| controllerManager.gcpPscVpc                  | string | ""                                  | GCP VPC name injected for Private Service Connect workflows.                                                |
 | keepCrds                                     | bool   | true                                | Keep or not keep CRDs when uninstalling the helm release.                                                   |
 | cert-manager.enabled                         | bool   | false                               | Set `certManager.enabled=true` will install the cert-menager to `release.namespace`.                        |
