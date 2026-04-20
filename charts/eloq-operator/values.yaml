@@ -12,7 +12,7 @@ controllerManager:
     annotations: {}
   image:
     repository: eloqdata/eloq-operator
-    tag: 1.1.0
+    tag: 1.2.2
   imagePullPolicy: Always
   ## In case the above image is pulled from a registry that requires
   ## authentication, a secret containing credentials can be added
@@ -57,6 +57,18 @@ controllerManager:
   cacheSyncPeriod: "1h"
   googleCloudProject: ""
   gcpPscVpc: ""
+  gcpDnsProjectId: ""
+  gcpDnsManagedZone: ""
+  gatewayNamespace: ""
+  clusterIssuer: google-ca-prod-clouddns
+  createGatewayClass: true
+  gatewayClassName: eloq-gateway-class
+  gatewayClassControllerName: gateway.envoyproxy.io/gatewayclass-controller
+  gatewayName: eloq-gateway
+  gatewayCertificateName: eloq-wildcard
+  gatewayCertificateSecretName: eloq-wildcard-tls
+  envoyProxyMinReplicas: 1
+  envoyProxyMaxReplicas: 5
 
 ## Setting keepCrds to false will delete CRDs after helm uninstall the release
 keepCrds: true

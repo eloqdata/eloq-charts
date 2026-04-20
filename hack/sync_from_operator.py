@@ -24,10 +24,15 @@ GENERATED_PATHS = [
     CHART_DIR / "templates" / "controller-manager" / "leader-election-rbac.yaml",
     CHART_DIR / "templates" / "controller-manager" / "proxy-rbac.yaml",
     CHART_DIR / "templates" / "controller-manager" / "deployment.yaml",
+    CHART_DIR / "templates" / "gatewayclass.yaml",
     CHART_DIR / "templates" / "metrics" / "metrics-rbac.yaml",
     CHART_DIR / "templates" / "webhook",
 ]
 ENV_VALUE_OVERRIDES = {
+    "ENABLE_LEADER_ELECTION": '{{ .Values.controllerManager.enableLeaderElection | default true | quote }}',
+    "ENABLE_WEBHOOKS": '{{ .Values.controllerManager.enableWebhooks | default true | quote }}',
+    "ENABLE_RECONCILER": '{{ .Values.controllerManager.enableReconciler | default true | quote }}',
+    "WATCH_NAMESPACE": '{{ .Values.controllerManager.watchNamespaces | quote }}',
     "DSYNC_IMAGE": '{{ .Values.controllerManager.dsyncImage | quote }}',
     "REDIS_SHAKE_IMAGE": '{{ .Values.controllerManager.redisShakeImage | quote }}',
     "CACHE_SYNC_PERIOD": '{{ .Values.controllerManager.cacheSyncPeriod | quote }}',
@@ -35,6 +40,14 @@ ENV_VALUE_OVERRIDES = {
     "KUBE_API_BURST": '{{ .Values.controllerManager.kubeApiBurst | quote }}',
     "GOOGLE_CLOUD_PROJECT": '{{ .Values.controllerManager.googleCloudProject | quote }}',
     "GCP_PSC_VPC": '{{ .Values.controllerManager.gcpPscVpc | quote }}',
+    "GATEWAY_NAMESPACE": '{{ .Values.controllerManager.gatewayNamespace | quote }}',
+    "CLUSTER_ISSUER": '{{ .Values.controllerManager.clusterIssuer | quote }}',
+    "GATEWAY_CLASS_NAME": '{{ .Values.controllerManager.gatewayClassName | quote }}',
+    "GATEWAY_NAME": '{{ .Values.controllerManager.gatewayName | quote }}',
+    "GATEWAY_CERTIFICATE_NAME": '{{ .Values.controllerManager.gatewayCertificateName | quote }}',
+    "GATEWAY_CERTIFICATE_SECRET_NAME": '{{ .Values.controllerManager.gatewayCertificateSecretName | quote }}',
+    "ENVOYPROXY_MIN_REPLICAS": '{{ .Values.controllerManager.envoyProxyMinReplicas | quote }}',
+    "ENVOYPROXY_MAX_REPLICAS": '{{ .Values.controllerManager.envoyProxyMaxReplicas | quote }}',
 }
 TARGET_TO_PATHS = {
     "crds": [CHART_DIR / "templates" / "crds"],
@@ -44,6 +57,7 @@ TARGET_TO_PATHS = {
         CHART_DIR / "templates" / "controller-manager" / "proxy-rbac.yaml",
         CHART_DIR / "templates" / "metrics" / "metrics-rbac.yaml",
     ],
+    "gatewayclass": [CHART_DIR / "templates" / "gatewayclass.yaml"],
     "webhook": [CHART_DIR / "templates" / "webhook"],
     "deployment": [CHART_DIR / "templates" / "controller-manager" / "deployment.yaml"],
 }
@@ -84,7 +98,7 @@ def run(cmd: list[str], cwd: Path | None = None, capture_output: bool = False) -
 
 
 def resolve_targets(selected: list[str]) -> list[str]:
-    return ["crds", "rbac", "webhook", "deployment"] if not selected or "all" in selected else selected
+    return ["crds", "rbac", "gatewayclass", "webhook", "deployment"] if not selected or "all" in selected else selected
 
 
 def generated_paths_for_targets(targets: list[str]) -> list[Path]:
@@ -382,6 +396,31 @@ def sync_webhook() -> None:
     print(f"synced webhook manifests from {OPERATOR_REPO / 'config' / 'webhook'}")
 
 
+def sync_gatewayclass() -> None:
+    src = OPERATOR_REPO / "config" / "gatewayclass" / "eloq-gateway-class.yaml"
+    doc = yaml.safe_load(src.read_text())
+    if not doc or doc.get("kind") != "GatewayClass":
+        raise SystemExit(f"unexpected gatewayclass manifest: {src}")
+
+    out = TEMPLATES_DIR / "gatewayclass.yaml"
+    out.write_text(
+        "{{- /*\n"
+        "Generated from eloq-operator/config/gatewayclass/eloq-gateway-class.yaml via hack/sync_from_operator.py\n"
+        "*/ -}}\n"
+        "{{- if .Values.controllerManager.createGatewayClass }}\n"
+        "apiVersion: gateway.networking.k8s.io/v1\n"
+        "kind: GatewayClass\n"
+        "metadata:\n"
+        "  name: {{ .Values.controllerManager.gatewayClassName }}\n"
+        "  labels:\n"
+        '    {{- include "eloq-operator.commonLabels" . | nindent 4 }}\n'
+        "spec:\n"
+        "  controllerName: {{ .Values.controllerManager.gatewayClassControllerName }}\n"
+        "{{- end }}\n"
+    )
+    print(f"synced gatewayclass manifest from {src}")
+
+
 def sync_deployment() -> None:
     require_tool("kustomize")
     rendered = run(
@@ -578,6 +617,8 @@ def sync(selected: list[str]) -> None:
             sync_crds()
         elif target == "rbac":
             sync_rbac()
+        elif target == "gatewayclass":
+            sync_gatewayclass()
         elif target == "webhook":
             sync_webhook()
         elif target == "deployment":
@@ -662,7 +703,7 @@ def build_parser() -> argparse.ArgumentParser:
     sync_parser.add_argument(
         "targets",
         nargs="*",
-        choices=["all", "crds", "rbac", "webhook", "deployment"],
+        choices=["all", "crds", "rbac", "gatewayclass", "webhook", "deployment"],
         help="Resource groups to sync. Defaults to all.",
     )
 
@@ -679,7 +720,7 @@ def build_parser() -> argparse.ArgumentParser:
     check_sync_parser.add_argument(
         "targets",
         nargs="*",
-        choices=["all", "crds", "rbac", "webhook", "deployment"],
+        choices=["all", "crds", "rbac", "gatewayclass", "webhook", "deployment"],
         help="Resource groups to sync. Defaults to all.",
     )
 

@@ -67,6 +67,9 @@ spec:
         args:
         - --health-probe-bind-address=:{{ .Values.controllerManager.healthPort }}
         - --metrics-bind-address=127.0.0.1:{{ .Values.controllerManager.metricPort }}
+        {{- if .Values.controllerManager.watchNamespaces }}
+        - --namespace={{ .Values.controllerManager.watchNamespaces }}
+        {{- end }}
         - --crd-group=eloqdbcluster.eloqdata.com
         ports:
           - containerPort: 9443
@@ -95,10 +98,6 @@ spec:
             name: cert
             readOnly: true
         env:
-        - name: DSYNC_IMAGE
-          value: {{ .Values.controllerManager.dsyncImage | quote }}
-        - name: REDIS_SHAKE_IMAGE
-          value: {{ .Values.controllerManager.redisShakeImage | quote }}
         - name: ENV_CERT_FILE_PATH
           value: /tmp/k8s-webhook-server/serving-certs
         - name: ENABLE_LEADER_ELECTION
@@ -107,22 +106,46 @@ spec:
           value: {{ .Values.controllerManager.enableWebhooks | default true | quote }}
         - name: ENABLE_RECONCILER
           value: {{ .Values.controllerManager.enableReconciler | default true | quote }}
+        - name: KUBE_API_QPS
+          value: {{ .Values.controllerManager.kubeApiQps | quote }}
+        - name: KUBE_API_BURST
+          value: {{ .Values.controllerManager.kubeApiBurst | quote }}
+        - name: CACHE_SYNC_PERIOD
+          value: {{ .Values.controllerManager.cacheSyncPeriod | quote }}
         - name: WATCH_NAMESPACE
           value: {{ .Values.controllerManager.watchNamespaces | quote }}
         - name: POD_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        - name: CACHE_SYNC_PERIOD
-          value: {{ .Values.controllerManager.cacheSyncPeriod | quote }}
-        - name: KUBE_API_QPS
-          value: {{ .Values.controllerManager.kubeApiQps | quote }}
-        - name: KUBE_API_BURST
-          value: {{ .Values.controllerManager.kubeApiBurst | quote }}
+        - name: GATEWAY_NAMESPACE
+          value: {{ .Values.controllerManager.gatewayNamespace | quote }}
+        - name: CLUSTER_ISSUER
+          value: {{ .Values.controllerManager.clusterIssuer | quote }}
+        - name: GATEWAY_CLASS_NAME
+          value: {{ .Values.controllerManager.gatewayClassName | quote }}
+        - name: GATEWAY_NAME
+          value: {{ .Values.controllerManager.gatewayName | quote }}
+        - name: GATEWAY_CERTIFICATE_NAME
+          value: {{ .Values.controllerManager.gatewayCertificateName | quote }}
+        - name: GATEWAY_CERTIFICATE_SECRET_NAME
+          value: {{ .Values.controllerManager.gatewayCertificateSecretName | quote }}
+        - name: ENVOYPROXY_MIN_REPLICAS
+          value: {{ .Values.controllerManager.envoyProxyMinReplicas | quote }}
+        - name: ENVOYPROXY_MAX_REPLICAS
+          value: {{ .Values.controllerManager.envoyProxyMaxReplicas | quote }}
+        - name: DSYNC_IMAGE
+          value: {{ .Values.controllerManager.dsyncImage | quote }}
+        - name: REDIS_SHAKE_IMAGE
+          value: {{ .Values.controllerManager.redisShakeImage | quote }}
         - name: GOOGLE_CLOUD_PROJECT
           value: {{ .Values.controllerManager.googleCloudProject | quote }}
         - name: GCP_PSC_VPC
           value: {{ .Values.controllerManager.gcpPscVpc | quote }}
+        - name: GCP_DNS_PROJECT_ID
+          value: {{ .Values.controllerManager.gcpDnsProjectId | quote }}
+        - name: GCP_DNS_MANAGED_ZONE
+          value: {{ .Values.controllerManager.gcpDnsManagedZone | quote }}
         - name: KUBERNETES_LIST_WATCH_LIST_ENABLED
           value: "false"
         - name: KUBE_FEATURE_WatchListClient

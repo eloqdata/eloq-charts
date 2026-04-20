@@ -150,7 +150,7 @@ eloq-op-sa"
 | controllerManager.serviceAccount.name        | string | eloq-operator-controller-manager | The service account name of the eloq operator controller manager pods.                                      |
 | controllerManager.serviceAccount.annotations | object | {}                                  | Annotations for the `controllerManager.serviceAccount`.                                                     |
 | controllerManager.image.repository           | string | eloqdata/eloq-operator              | The image name of the eloq operator.                                                                        |
-| controllerManager.image.tag                  | string | 1.1.0                               | The version tag for eloq operator docker image.                                                             |
+| controllerManager.image.tag                  | string | 1.2.2                               | The version tag for eloq operator docker image.                                                             |
 | controllerManager.imagePullPolicy            | string | Always                              | -                                                                                                           |
 | controllerManager.imagePullSecrets           | object | {}                                  | -                                                                                                           |
 | controllerManager.resources                  | object | Same format as k8s resource         | Resource requests and limits for eloq operator controller manager pods.                                     |
