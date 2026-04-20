@@ -69,7 +69,7 @@ def require_tool(name: str) -> None:
 
 
 def dump_yaml(value: object, indent: int = 0) -> str:
-    text = yaml.safe_dump(value, sort_keys=False).rstrip()
+    text = yaml.safe_dump(value, sort_keys=False, width=4096).rstrip()
     if indent:
         text = text.replace("\n", "\n" + " " * indent)
     return text

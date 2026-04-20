@@ -1,13 +1,13 @@
 {{- /*
 Generated from eloq-operator/config/webhook/manifests.yaml via hack/sync_from_operator.py
 */ -}}
+{{- if .Values.controllerManager.enableWebhooks }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   name: {{ include "eloq-operator.fullname" . }}-validating-webhook-configuration
   annotations:
-    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "eloq-operator.name"
-      . }}-serving-cert'
+    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "eloq-operator.name" . }}-serving-cert'
   labels:
     app.kubernetes.io/component: webhook
     {{- include "eloq-operator.commonLabels" . | nindent 4 }}
@@ -77,3 +77,4 @@ webhooks:
     - eloqdbclustertemplates
   sideEffects: None
   timeoutSeconds: 1
+{{- end }}

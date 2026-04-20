@@ -1,16 +1,13 @@
 {{- /*
 Generated from eloq-operator/config/webhook/service.yaml via hack/sync_from_operator.py
 */ -}}
+{{- if .Values.controllerManager.enableWebhooks }}
 apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app.kubernetes.io/name: service
-    app.kubernetes.io/instance: webhook-service
     app.kubernetes.io/component: webhook
-    app.kubernetes.io/created-by: eloq-operator
-    app.kubernetes.io/part-of: eloq-operator
-    app.kubernetes.io/managed-by: kustomize
+    {{- include "eloq-operator.commonLabels" . | nindent 4 }}
   name: {{ include "eloq-operator.name" . }}-webhook-service
   namespace: {{ .Release.Namespace }}
 spec:
@@ -21,4 +18,5 @@ spec:
   selector:
     {{- include "eloq-operator.selectorLabels" . | nindent 4 }}
     {{- include "eloq-operator.controlPlaneLabels" . | nindent 4 }}
+{{- end }}
 
