@@ -197,11 +197,12 @@ spec:
                 type: integer
               state:
                 default: Idle
-                description: State represents the user's desired state (Running or
-                  Idle)
+                description: State represents the user's desired state (Running, Idle,
+                  or Deleted)
                 enum:
                 - Running
                 - Idle
+                - Deleted
                 type: string
               templateRef:
                 description: TemplateRef references the EloqDBClusterTemplate to use
@@ -689,6 +690,15 @@ spec:
                         type: object
                     type: object
                 type: object
+              logStorePath:
+                description: LogStorePath stores the effective log store object path
+                  in <bucket-name>/<path> format.
+                type: string
+              logStoreUsedBytes:
+                description: LogStoreUsedBytes records the latest observed log store
+                  object-storage usage in bytes.
+                format: int64
+                type: integer
               module:
                 allOf:
                 - enum:
@@ -700,6 +710,22 @@ spec:
                 description: |-
                   Module represents the module type (eloqkv or eloqdoc)
                   Inferred from the referenced template and cached here for quick access
+                type: string
+              objectStorageCleaned:
+                description: ObjectStorageCleaned reports whether deleted-state cleanup
+                  has already removed the claim's object storage prefixes.
+                type: boolean
+              objectStorageType:
+                description: ObjectStorageType is the inferred backing object storage
+                  type for this claim.
+                enum:
+                - s3
+                - gcs
+                type: string
+              objectStorageUsageLastUpdatedAt:
+                description: ObjectStorageUsageLastUpdatedAt is the last time object-storage
+                  usage statistics were refreshed.
+                format: date-time
                 type: string
               observedGeneration:
                 description: ObservedGeneration reflects the generation of the most
@@ -715,6 +741,8 @@ spec:
                 - Bound
                 - Releasing
                 - Released
+                - Deleting
+                - Deleted
                 - Migrating
                 type: string
               serviceEndpoints:
@@ -739,6 +767,15 @@ spec:
                 x-kubernetes-list-map-keys:
                 - address
                 x-kubernetes-list-type: map
+              txStorePath:
+                description: TxStorePath stores the effective tx store object path
+                  in <bucket-name>/<path> format.
+                type: string
+              txStoreUsedBytes:
+                description: TxStoreUsedBytes records the latest observed tx store
+                  object-storage usage in bytes.
+                format: int64
+                type: integer
             type: object
         type: object
     served: true

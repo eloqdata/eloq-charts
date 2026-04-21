@@ -29,25 +29,27 @@ GENERATED_PATHS = [
     CHART_DIR / "templates" / "webhook",
 ]
 ENV_VALUE_OVERRIDES = {
-    "ENABLE_LEADER_ELECTION": '{{ .Values.controllerManager.enableLeaderElection | default true | quote }}',
-    "ENABLE_WEBHOOKS": '{{ .Values.controllerManager.enableWebhooks | default true | quote }}',
-    "ENABLE_RECONCILER": '{{ .Values.controllerManager.enableReconciler | default true | quote }}',
-    "WATCH_NAMESPACE": '{{ .Values.controllerManager.watchNamespaces | quote }}',
-    "DSYNC_IMAGE": '{{ .Values.controllerManager.dsyncImage | quote }}',
-    "REDIS_SHAKE_IMAGE": '{{ .Values.controllerManager.redisShakeImage | quote }}',
-    "CACHE_SYNC_PERIOD": '{{ .Values.controllerManager.cacheSyncPeriod | quote }}',
-    "KUBE_API_QPS": '{{ .Values.controllerManager.kubeApiQps | quote }}',
-    "KUBE_API_BURST": '{{ .Values.controllerManager.kubeApiBurst | quote }}',
-    "GOOGLE_CLOUD_PROJECT": '{{ .Values.controllerManager.googleCloudProject | quote }}',
-    "GCP_PSC_VPC": '{{ .Values.controllerManager.gcpPscVpc | quote }}',
-    "GATEWAY_NAMESPACE": '{{ .Values.controllerManager.gatewayNamespace | quote }}',
-    "CLUSTER_ISSUER": '{{ .Values.controllerManager.clusterIssuer | quote }}',
-    "GATEWAY_CLASS_NAME": '{{ .Values.controllerManager.gatewayClassName | quote }}',
-    "GATEWAY_NAME": '{{ .Values.controllerManager.gatewayName | quote }}',
-    "GATEWAY_CERTIFICATE_NAME": '{{ .Values.controllerManager.gatewayCertificateName | quote }}',
-    "GATEWAY_CERTIFICATE_SECRET_NAME": '{{ .Values.controllerManager.gatewayCertificateSecretName | quote }}',
-    "ENVOYPROXY_MIN_REPLICAS": '{{ .Values.controllerManager.envoyProxyMinReplicas | quote }}',
-    "ENVOYPROXY_MAX_REPLICAS": '{{ .Values.controllerManager.envoyProxyMaxReplicas | quote }}',
+    "ENABLE_LEADER_ELECTION": "{{ .Values.controllerManager.enableLeaderElection | default true | quote }}",
+    "ENABLE_WEBHOOKS": "{{ .Values.controllerManager.enableWebhooks | default true | quote }}",
+    "ENABLE_RECONCILER": "{{ .Values.controllerManager.enableReconciler | default true | quote }}",
+    "WATCH_NAMESPACE": "{{ .Values.controllerManager.watchNamespaces | quote }}",
+    "DSYNC_IMAGE": "{{ .Values.controllerManager.dsyncImage | quote }}",
+    "REDIS_SHAKE_IMAGE": "{{ .Values.controllerManager.redisShakeImage | quote }}",
+    "CACHE_SYNC_PERIOD": "{{ .Values.controllerManager.cacheSyncPeriod | quote }}",
+    "KUBE_API_QPS": "{{ .Values.controllerManager.kubeApiQps | quote }}",
+    "KUBE_API_BURST": "{{ .Values.controllerManager.kubeApiBurst | quote }}",
+    "GOOGLE_CLOUD_PROJECT": "{{ .Values.controllerManager.googleCloudProject | quote }}",
+    "GCP_PSC_VPC": "{{ .Values.controllerManager.gcpPscVpc | quote }}",
+    "GCP_DNS_PROJECT_ID": "{{ .Values.controllerManager.gcpDnsProjectId | quote }}",
+    "GCP_DNS_MANAGED_ZONE": "{{ .Values.controllerManager.gcpDnsManagedZone | quote }}",
+    "GATEWAY_NAMESPACE": "{{ .Values.controllerManager.gatewayNamespace | quote }}",
+    "CLUSTER_ISSUER": "{{ .Values.controllerManager.clusterIssuer | quote }}",
+    "GATEWAY_CLASS_NAME": "{{ .Values.controllerManager.gatewayClassName | quote }}",
+    "GATEWAY_NAME": "{{ .Values.controllerManager.gatewayName | quote }}",
+    "GATEWAY_CERTIFICATE_NAME": "{{ .Values.controllerManager.gatewayCertificateName | quote }}",
+    "GATEWAY_CERTIFICATE_SECRET_NAME": "{{ .Values.controllerManager.gatewayCertificateSecretName | quote }}",
+    "ENVOYPROXY_MIN_REPLICAS": "{{ .Values.controllerManager.envoyProxyMinReplicas | quote }}",
+    "ENVOYPROXY_MAX_REPLICAS": "{{ .Values.controllerManager.envoyProxyMaxReplicas | quote }}",
 }
 TARGET_TO_PATHS = {
     "crds": [CHART_DIR / "templates" / "crds"],
@@ -87,7 +89,9 @@ def render_env_list_item(env: dict) -> list[str]:
     return render_mapping_list_item(env)
 
 
-def run(cmd: list[str], cwd: Path | None = None, capture_output: bool = False) -> subprocess.CompletedProcess[str]:
+def run(
+    cmd: list[str], cwd: Path | None = None, capture_output: bool = False
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         cmd,
         cwd=cwd,
@@ -98,7 +102,11 @@ def run(cmd: list[str], cwd: Path | None = None, capture_output: bool = False) -
 
 
 def resolve_targets(selected: list[str]) -> list[str]:
-    return ["crds", "rbac", "gatewayclass", "webhook", "deployment"] if not selected or "all" in selected else selected
+    return (
+        ["crds", "rbac", "gatewayclass", "webhook", "deployment"]
+        if not selected or "all" in selected
+        else selected
+    )
 
 
 def generated_paths_for_targets(targets: list[str]) -> list[Path]:
@@ -317,7 +325,9 @@ def sync_webhook() -> None:
         "name: webhook-service",
         'name: {{ include "eloq-operator.name" . }}-webhook-service',
     )
-    service_text = service_text.replace("namespace: system", "namespace: {{ .Release.Namespace }}")
+    service_text = service_text.replace(
+        "namespace: system", "namespace: {{ .Release.Namespace }}"
+    )
     service_text = service_text.replace(
         "    control-plane: controller-manager\n"
         "    app.kubernetes.io/name: eloq-operator\n"
@@ -329,7 +339,9 @@ def sync_webhook() -> None:
         "{{- /*\n"
         "Generated from eloq-operator/config/webhook/service.yaml via hack/sync_from_operator.py\n"
         "*/ -}}\n"
+        "{{- if .Values.controllerManager.enableWebhooks }}\n"
         f"{service_text}\n"
+        "{{- end }}\n"
     )
 
     for doc in yaml.safe_load_all(manifest_src.read_text()):
@@ -382,14 +394,16 @@ def sync_webhook() -> None:
             '    {{- include "eloq-operator.commonLabels" . | nindent 4 }}',
         )
         text = text.replace(
-            '\'{{ .Release.Namespace }}/{{ include "eloq-operator.name" . }}-serving-cert\'',
-            '{{ .Release.Namespace }}/{{ include "eloq-operator.name" . }}-serving-cert',
+            "'{{ .Release.Namespace }}/{{ include \"eloq-operator.name\" . }}-serving-cert'",
+            "'{{ .Release.Namespace }}/{{ include \"eloq-operator.name\" . }}-serving-cert'",
         )
         (webhook_dir / out_name).write_text(
             "{{- /*\n"
             f"Generated from eloq-operator/config/webhook/{'manifests.yaml'} via hack/sync_from_operator.py\n"
             "*/ -}}\n"
+            "{{- if .Values.controllerManager.enableWebhooks }}\n"
             f"{text}\n"
+            "{{- end }}\n"
         )
         _ = name
 
@@ -432,8 +446,16 @@ def sync_deployment() -> None:
     deployment = next(doc for doc in docs if doc.get("kind") == "Deployment")
 
     pod_spec = deployment["spec"]["template"]["spec"]
-    manager = next(container for container in pod_spec["containers"] if container["name"] == "manager")
-    proxy = next(container for container in pod_spec["containers"] if container["name"] == "kube-rbac-proxy")
+    manager = next(
+        container
+        for container in pod_spec["containers"]
+        if container["name"] == "manager"
+    )
+    proxy = next(
+        container
+        for container in pod_spec["containers"]
+        if container["name"] == "kube-rbac-proxy"
+    )
 
     manager_args = [
         "- --health-probe-bind-address=:{{ .Values.controllerManager.healthPort }}",
@@ -454,16 +476,22 @@ def sync_deployment() -> None:
                 ]
             )
         elif arg.startswith("--webhooks="):
-            manager_args.append("- --webhooks={{ .Values.controllerManager.enableWebhooks | default true }}")
+            manager_args.append(
+                "- --webhooks={{ .Values.controllerManager.enableWebhooks | default true }}"
+            )
         elif arg.startswith("--enable-reconciler="):
-            manager_args.append("- --enable-reconciler={{ .Values.controllerManager.enableReconciler | default true }}")
+            manager_args.append(
+                "- --enable-reconciler={{ .Values.controllerManager.enableReconciler | default true }}"
+            )
         else:
             manager_args.append(f"- {arg}")
 
     proxy_args = []
     for arg in proxy.get("args", []):
         if arg.startswith("--upstream=http://127.0.0.1:"):
-            proxy_args.append("- --upstream=http://127.0.0.1:{{ .Values.controllerManager.metricPort }}/")
+            proxy_args.append(
+                "- --upstream=http://127.0.0.1:{{ .Values.controllerManager.metricPort }}/"
+            )
         else:
             proxy_args.append(f"- {arg}")
 
@@ -473,25 +501,33 @@ def sync_deployment() -> None:
 
     env_lines.extend(
         [
-            '- name: KUBERNETES_LIST_WATCH_LIST_ENABLED',
+            "- name: KUBERNETES_LIST_WATCH_LIST_ENABLED",
             '  value: "false"',
-            '- name: KUBE_FEATURE_WatchListClient',
+            "- name: KUBE_FEATURE_WatchListClient",
             '  value: "false"',
         ]
     )
 
-    kube_api_qps_defined = any(env.get("name") == "KUBE_API_QPS" for env in manager.get("env", []))
-    kube_api_burst_defined = any(env.get("name") == "KUBE_API_BURST" for env in manager.get("env", []))
+    kube_api_qps_defined = any(
+        env.get("name") == "KUBE_API_QPS" for env in manager.get("env", [])
+    )
+    kube_api_burst_defined = any(
+        env.get("name") == "KUBE_API_BURST" for env in manager.get("env", [])
+    )
     if not kube_api_qps_defined:
-        env_lines.extend([
-            '- name: KUBE_API_QPS',
-            '  value: {{ .Values.controllerManager.kubeApiQps | quote }}',
-        ])
+        env_lines.extend(
+            [
+                "- name: KUBE_API_QPS",
+                "  value: {{ .Values.controllerManager.kubeApiQps | quote }}",
+            ]
+        )
     if not kube_api_burst_defined:
-        env_lines.extend([
-            '- name: KUBE_API_BURST',
-            '  value: {{ .Values.controllerManager.kubeApiBurst | quote }}',
-        ])
+        env_lines.extend(
+            [
+                "- name: KUBE_API_BURST",
+                "  value: {{ .Values.controllerManager.kubeApiBurst | quote }}",
+            ]
+        )
 
     liveness = manager["livenessProbe"]
     readiness = manager["readinessProbe"]
@@ -645,7 +681,13 @@ def check_sync(selected: list[str]) -> None:
         try:
             sync(targets)
             result = subprocess.run(
-                ["git", "diff", "--exit-code", "--", *[str(path.relative_to(REPO_DIR)) for path in paths]],
+                [
+                    "git",
+                    "diff",
+                    "--exit-code",
+                    "--",
+                    *[str(path.relative_to(REPO_DIR)) for path in paths],
+                ],
                 cwd=REPO_DIR,
                 text=True,
                 capture_output=True,
@@ -685,15 +727,22 @@ def verify(release_name: str, rendered_path: Path, server_dry_run: bool) -> None
     render(release_name, rendered_path)
     if server_dry_run:
         require_tool("kubectl")
-        run(["kubectl", "apply", "--dry-run=server", "-f", str(rendered_path)], cwd=REPO_DIR)
+        run(
+            ["kubectl", "apply", "--dry-run=server", "-f", str(rendered_path)],
+            cwd=REPO_DIR,
+        )
         print("server-side dry-run validation passed")
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Sync generated Helm chart artifacts from eloq-operator.")
+    parser = argparse.ArgumentParser(
+        description="Sync generated Helm chart artifacts from eloq-operator."
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    sync_parser = subparsers.add_parser("sync", help="Sync generated resources from eloq-operator.")
+    sync_parser = subparsers.add_parser(
+        "sync", help="Sync generated resources from eloq-operator."
+    )
     sync_parser.add_argument(
         "--operator-repo",
         type=Path,
@@ -728,7 +777,9 @@ def build_parser() -> argparse.ArgumentParser:
     render_parser.add_argument("--release-name", default="test")
     render_parser.add_argument("--output", type=Path, default=RENDERED_CHART)
 
-    verify_parser = subparsers.add_parser("verify", help="Lint and render the Helm chart.")
+    verify_parser = subparsers.add_parser(
+        "verify", help="Lint and render the Helm chart."
+    )
     verify_parser.add_argument("--release-name", default="test")
     verify_parser.add_argument("--output", type=Path, default=RENDERED_CHART)
     verify_parser.add_argument("--server-dry-run", action="store_true")

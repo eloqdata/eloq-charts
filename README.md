@@ -68,7 +68,7 @@ Once Helm has been set up correctly, install the chart directly from the OCI reg
 # Install eloq-operator from OCI registry
 helm install eloq-operator \
   oci://ghcr.io/eloqdata/charts/eloq-operator \
-  --version 1.0.1 \
+  --version 1.3.1 \
   --namespace eloq-operator-system \
   --create-namespace
 ```
@@ -82,7 +82,7 @@ To schedule the eloq-operator controller manager on specific nodes, you can spec
 ```shell
 helm install eloq-operator \
   oci://ghcr.io/eloqdata/charts/eloq-operator \
-  --version 1.0.1 \
+  --version 1.3.1 \
   --namespace eloq-operator-system \
   --create-namespace \
   --set controllerManager.nodeSelector."eloqdata\.com/node"=control-plane
@@ -95,10 +95,10 @@ To install the operator with a specific image version:
 ```shell
 helm install eloq-operator \
   oci://ghcr.io/eloqdata/charts/eloq-operator \
-  --version 1.0.1 \
+  --version 1.3.1 \
   --namespace eloq-operator-system \
   --create-namespace \
-  --set controllerManager.image.tag=1.0.1
+  --set controllerManager.image.tag=1.3.1
 ```
 
 ### Upgrade the eloq-operator
@@ -108,7 +108,7 @@ To upgrade an existing eloq-operator release:
 ```shell
 helm upgrade eloq-operator \
   oci://ghcr.io/eloqdata/charts/eloq-operator \
-  --version 1.0.1 \
+  --version 1.3.1 \
   --namespace eloq-operator-system
 ```
 
@@ -150,7 +150,7 @@ eloq-op-sa"
 | controllerManager.serviceAccount.name        | string | eloq-operator-controller-manager | The service account name of the eloq operator controller manager pods.                                      |
 | controllerManager.serviceAccount.annotations | object | {}                                  | Annotations for the `controllerManager.serviceAccount`.                                                     |
 | controllerManager.image.repository           | string | eloqdata/eloq-operator              | The image name of the eloq operator.                                                                        |
-| controllerManager.image.tag                  | string | 1.2.2                               | The version tag for eloq operator docker image.                                                             |
+| controllerManager.image.tag                  | string | 1.3.1                               | The version tag for eloq operator docker image.                                                             |
 | controllerManager.imagePullPolicy            | string | Always                              | -                                                                                                           |
 | controllerManager.imagePullSecrets           | object | {}                                  | -                                                                                                           |
 | controllerManager.resources                  | object | Same format as k8s resource         | Resource requests and limits for eloq operator controller manager pods.                                     |
