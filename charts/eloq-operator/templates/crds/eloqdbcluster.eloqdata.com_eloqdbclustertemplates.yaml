@@ -3,12 +3,10 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
     {{- if .Values.keepCrds }}
     "helm.sh/resource-policy": keep
     {{- end }}
-  labels:
-    {{- include "eloq-operator.commonLabels" . | nindent 4 }}
+    controller-gen.kubebuilder.io/version: v0.16.5
   name: eloqdbclustertemplates.eloqdbcluster.eloqdata.com
 spec:
   group: eloqdbcluster.eloqdata.com
@@ -67,16 +65,15 @@ spec:
               This is the complete spec that will be used to create EloqDBCluster instances.
             properties:
               clusterDeployMode:
-                allOf:
-                - enum:
-                  - txOnly
-                  - logOnly
-                  - txWithLog
-                  - txWithExternalLog
-                  - txWithInternalLog
-                - enum:
-                  - txWithInternalLog
-                description: Which services to deploy
+                description: |-
+                  Deprecated: ClusterDeployMode is no longer used to determine workflow behaviour.
+                  The operator infers all necessary information from tx/log/module/exposeService spec fields.
+                  This field will be removed in a future release. Omit or set to empty string.
+                type: string
+              googleCloudProject:
+                description: |-
+                  GoogleCloudProject is the Google Cloud project ID used for GCS-backed storage on GCP.
+                  Required when the operator runs on GCP and object storage is used.
                 type: string
               log:
                 description: |-
@@ -269,87 +266,31 @@ spec:
                     description: SchedulePolicy Specifies the scheduling policy for
                       the service(TxService/LogService).
                     properties:
-                      labelSelector:
-                        description: LabelSelector is used to find matching nodes
-                          or pods by labels.
-                        properties:
-                          matchExpressions:
-                            description: matchExpressions is a list of label selector
-                              requirements. The requirements are ANDed.
-                            items:
-                              description: |-
-                                A label selector requirement is a selector that contains values, a key, and an operator that
-                                relates the key and values.
-                              properties:
-                                key:
-                                  description: key is the label key that the selector
-                                    applies to.
-                                  type: string
-                                operator:
-                                  description: |-
-                                    operator represents a key's relationship to a set of values.
-                                    Valid operators are In, NotIn, Exists and DoesNotExist.
-                                  type: string
-                                values:
-                                  description: |-
-                                    values is an array of string values. If the operator is In or NotIn,
-                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                    the values array must be empty. This array is replaced during a strategic
-                                    merge patch.
-                                  items:
-                                    type: string
-                                  type: array
-                                  x-kubernetes-list-type: atomic
-                              required:
-                              - key
-                              - operator
-                              type: object
-                            type: array
-                            x-kubernetes-list-type: atomic
-                          matchLabels:
-                            additionalProperties:
+                      nodeLabels:
+                        description: NodeLabels lists required node labels using AND
+                          semantics.
+                        items:
+                          description: ServiceScheduleNodeLabel is a required key/value
+                            node label match.
+                          properties:
+                            key:
+                              description: Key is the node label key.
                               type: string
-                            description: |-
-                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                              map is equivalent to an element of matchExpressions, whose key field is "key", the
-                              operator is "In", and the values array contains only "value". The requirements are ANDed.
-                            type: object
-                        type: object
-                        x-kubernetes-map-type: atomic
-                      policyType:
-                        allOf:
-                        - enum:
-                          - preferred
-                          - required
-                        - enum:
-                          - preferred
-                          - required
-                        default: preferred
+                            value:
+                              description: Value is the node label value.
+                              type: string
+                          required:
+                          - key
+                          - value
+                          type: object
+                        type: array
+                      zones:
                         description: |-
-                          PolicyType The scheduling policy type is used to specify the behavior of the controller
-                          when the resource does not meet the scheduling policy..
-                          Default: required
-                        type: string
-                      preferredZone:
-                        description: PreferredZone If configured, the service prefers
-                          to be deployed in that availability zone.
-                        type: string
-                    required:
-                    - preferredZone
-                    type: object
-                  sharedLogCluster:
-                    description: |-
-                      SharedLogCluster is the external logService cluster,
-                      if configured, the EloqDBCluster would use existed log service
-                    properties:
-                      name:
-                        description: Name log cluster name
-                        type: string
-                      namespace:
-                        type: string
-                    required:
-                    - name
-                    - namespace
+                          Zones lists the availability zones where the service may be scheduled.
+                          The first zone is treated as the primary zone for single-AZ placement and leader preference.
+                        items:
+                          type: string
+                        type: array
                     type: object
                   store:
                     description: StorageService spec
@@ -361,12 +302,6 @@ spec:
                         properties:
                           cloudEndpoint:
                             description: Cloud storage endpoint URL
-                            type: string
-                          cloudRegion:
-                            description: Cloud storage region
-                            type: string
-                          cloudStorePath:
-                            description: EloqStore cloud store path (bucket prefix/path)
                             type: string
                           dataAppendMode:
                             default: true
@@ -398,29 +333,11 @@ spec:
                             minimum: 1
                             type: integer
                         type: object
-                      googleCloudProject:
-                        description: GoogleCloudProject The Google Cloud Project ID
-                          (required for GCS)
-                        type: string
-                      objectStorageType:
-                        default: s3
-                        description: Cloud provider object storage type, s3 (aws s3)
-                          or gcs (google cloud storage)
-                        enum:
-                        - s3
-                        - gcs
-                        type: string
                       rocksdbCloud:
                         description: |-
                           Object storage config.
                           Required when storageType is rocksdbCloud. Mutually exclusive with eloqStore.
                         properties:
-                          bucketName:
-                            description: BucketName
-                            type: string
-                          bucketPrefix:
-                            description: BucketPrefix
-                            type: string
                           endpointUrl:
                             default: ""
                             description: EndpointUrl Custom S3-compatible endpoint
@@ -432,19 +349,12 @@ spec:
                               for RocksDB Cloud files
                             format: int32
                             type: integer
-                          objectPath:
-                            description: ObjectPath rocksdbCloud object path(uri)
-                              under the cloud object bucket.
-                            type: string
                           readyTimeout:
                             default: 10
                             description: ReadyTimeout Timeout before RocksDB Cloud
                               becoming ready on new log group leader
                             format: int32
                             type: integer
-                          region:
-                            description: Region Cloud provider object storage region
-                            type: string
                           sstFileCacheSize:
                             anyOf:
                             - type: integer
@@ -494,14 +404,20 @@ spec:
                 - persistentVolume
                 - store
                 type: object
+              region:
+                description: Region is the cloud object storage region shared by tx
+                  and log storage backends.
+                type: string
               s3SecretName:
                 description: |-
                   S3SecretName specifies the name of the Kubernetes secret containing S3 credentials (AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY)
                   to be injected as environment variables into the pods for accessing S3-compatible storage services.
                 type: string
               serviceAccountName:
-                description: ServiceAccountName For accessing aws resources. (EBS,
-                  ELB)
+                description: |-
+                  ServiceAccountName specifies the Kubernetes ServiceAccount used by operator-managed
+                  workloads to access cloud resources such as persistent disks, load balancers,
+                  and object storage integrations on AWS and GCP.
                 type: string
               tx:
                 description: |-
@@ -546,8 +462,10 @@ spec:
                         type: integer
                     type: object
                   createAdmin:
-                    description: CreateAdmin indicates whether to create an admin
-                      user.
+                    description: |-
+                      Deprecated: CreateAdmin is replaced by claim-level control in EloqDBClusterClaim.
+                      This field will be removed in a future release. The webhook automatically sets this field to nil.
+                    nullable: true
                     type: boolean
                   enableMetrics:
                     default: "on"
@@ -569,9 +487,11 @@ spec:
                     - size
                     type: object
                   exposedService:
-                    default: true
-                    description: Whether to expose service with cloud provider LB
-                      instance.
+                    description: |-
+                      Deprecated: ExposedService is replaced by the top-level exposeService field in EloqDBClusterTemplateSpec.
+                      This field will be removed in a future release. Use exposeService instead to control service exposure.
+                      The webhook automatically sets this field to nil.
+                    nullable: true
                     type: boolean
                   externalIps:
                     description: TxService external Ip
@@ -624,17 +544,15 @@ spec:
                     properties:
                       port:
                         description: |-
-                          Port to which the user is connected. This port is currently the connection port for EloqSQL, EloqKV, or EloqDoc.
+                          Port to which the user is connected. This port is currently the connection port for EloqKV or EloqDoc.
                           It is required to be set.
                         type: integer
                       type:
                         allOf:
                         - enum:
-                          - eloqsql
                           - eloqkv
                           - eloqdoc
                         - enum:
-                          - eloqsql
                           - eloqkv
                           - eloqdoc
                         description: ModuleType for user interaction with eloq.
@@ -643,13 +561,6 @@ spec:
                     - port
                     - type
                     type: object
-                  replica:
-                    description: Replicas of Pods TxService.
-                    format: int32
-                    type: integer
-                    x-kubernetes-validations:
-                    - message: For now TxService Replica is immutable
-                      rule: self == oldSelf
                   resources:
                     description: Resources of the EloqDB component.
                     properties:
@@ -713,73 +624,31 @@ spec:
                     description: SchedulePolicy Specifies the scheduling policy for
                       the service(TxService/LogService).
                     properties:
-                      labelSelector:
-                        description: LabelSelector is used to find matching nodes
-                          or pods by labels.
-                        properties:
-                          matchExpressions:
-                            description: matchExpressions is a list of label selector
-                              requirements. The requirements are ANDed.
-                            items:
-                              description: |-
-                                A label selector requirement is a selector that contains values, a key, and an operator that
-                                relates the key and values.
-                              properties:
-                                key:
-                                  description: key is the label key that the selector
-                                    applies to.
-                                  type: string
-                                operator:
-                                  description: |-
-                                    operator represents a key's relationship to a set of values.
-                                    Valid operators are In, NotIn, Exists and DoesNotExist.
-                                  type: string
-                                values:
-                                  description: |-
-                                    values is an array of string values. If the operator is In or NotIn,
-                                    the values array must be non-empty. If the operator is Exists or DoesNotExist,
-                                    the values array must be empty. This array is replaced during a strategic
-                                    merge patch.
-                                  items:
-                                    type: string
-                                  type: array
-                                  x-kubernetes-list-type: atomic
-                              required:
-                              - key
-                              - operator
-                              type: object
-                            type: array
-                            x-kubernetes-list-type: atomic
-                          matchLabels:
-                            additionalProperties:
+                      nodeLabels:
+                        description: NodeLabels lists required node labels using AND
+                          semantics.
+                        items:
+                          description: ServiceScheduleNodeLabel is a required key/value
+                            node label match.
+                          properties:
+                            key:
+                              description: Key is the node label key.
                               type: string
-                            description: |-
-                              matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
-                              map is equivalent to an element of matchExpressions, whose key field is "key", the
-                              operator is "In", and the values array contains only "value". The requirements are ANDed.
-                            type: object
-                        type: object
-                        x-kubernetes-map-type: atomic
-                      policyType:
-                        allOf:
-                        - enum:
-                          - preferred
-                          - required
-                        - enum:
-                          - preferred
-                          - required
-                        default: preferred
+                            value:
+                              description: Value is the node label value.
+                              type: string
+                          required:
+                          - key
+                          - value
+                          type: object
+                        type: array
+                      zones:
                         description: |-
-                          PolicyType The scheduling policy type is used to specify the behavior of the controller
-                          when the resource does not meet the scheduling policy..
-                          Default: required
-                        type: string
-                      preferredZone:
-                        description: PreferredZone If configured, the service prefers
-                          to be deployed in that availability zone.
-                        type: string
-                    required:
-                    - preferredZone
+                          Zones lists the availability zones where the service may be scheduled.
+                          The first zone is treated as the primary zone for single-AZ placement and leader preference.
+                        items:
+                          type: string
+                        type: array
                     type: object
                   store:
                     description: StorageService spec
@@ -791,12 +660,6 @@ spec:
                         properties:
                           cloudEndpoint:
                             description: Cloud storage endpoint URL
-                            type: string
-                          cloudRegion:
-                            description: Cloud storage region
-                            type: string
-                          cloudStorePath:
-                            description: EloqStore cloud store path (bucket prefix/path)
                             type: string
                           dataAppendMode:
                             default: true
@@ -828,29 +691,11 @@ spec:
                             minimum: 1
                             type: integer
                         type: object
-                      googleCloudProject:
-                        description: GoogleCloudProject The Google Cloud Project ID
-                          (required for GCS)
-                        type: string
-                      objectStorageType:
-                        default: s3
-                        description: Cloud provider object storage type, s3 (aws s3)
-                          or gcs (google cloud storage)
-                        enum:
-                        - s3
-                        - gcs
-                        type: string
                       rocksdbCloud:
                         description: |-
                           Object storage config.
                           Required when storageType is rocksdbCloud. Mutually exclusive with eloqStore.
                         properties:
-                          bucketName:
-                            description: BucketName
-                            type: string
-                          bucketPrefix:
-                            description: BucketPrefix
-                            type: string
                           endpointUrl:
                             default: ""
                             description: EndpointUrl Custom S3-compatible endpoint
@@ -862,19 +707,12 @@ spec:
                               for RocksDB Cloud files
                             format: int32
                             type: integer
-                          objectPath:
-                            description: ObjectPath rocksdbCloud object path(uri)
-                              under the cloud object bucket.
-                            type: string
                           readyTimeout:
                             default: 10
                             description: ReadyTimeout Timeout before RocksDB Cloud
                               becoming ready on new log group leader
                             format: int32
                             type: integer
-                          region:
-                            description: Region Cloud provider object storage region
-                            type: string
                           sstFileCacheSize:
                             anyOf:
                             - type: integer
@@ -942,26 +780,13 @@ spec:
                 required:
                 - authentication
                 - bootstrap
-                - createAdmin
                 - ephemeralVolume
-                - exposedService
                 - module
-                - replica
                 - store
                 type: object
             required:
-            - clusterDeployMode
+            - serviceAccountName
             type: object
-            x-kubernetes-validations:
-            - message: log spec is required for txWithInternalLog mode
-              rule: 'self.clusterDeployMode == ''txWithInternalLog'' ? has(self.log)
-                : true'
-            - message: tx spec is required for txWithInternalLog mode
-              rule: 'self.clusterDeployMode == ''txWithInternalLog'' ? has(self.tx)
-                : true'
-            - message: sharedLogCluster must not be set for txWithInternalLog mode
-              rule: 'has(self.log) && has(self.log.sharedLogCluster) ? self.clusterDeployMode
-                != ''txWithInternalLog'' : true'
           status:
             description: EloqDBClusterTemplateStatus defines the observed state of
               EloqDBClusterTemplate

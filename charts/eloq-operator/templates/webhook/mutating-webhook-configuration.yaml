@@ -1,9 +1,13 @@
+{{- /*
+Generated from eloq-operator/config/webhook/manifests.yaml via hack/sync_from_operator.py
+*/ -}}
+{{- if .Values.controllerManager.enableWebhooks }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   name: {{ include "eloq-operator.fullname" . }}-mutating-webhook-configuration
   annotations:
-    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "eloq-operator.name" . }}-serving-cert
+    cert-manager.io/inject-ca-from: '{{ .Release.Namespace }}/{{ include "eloq-operator.name" . }}-serving-cert'
   labels:
     app.kubernetes.io/component: webhook
     {{- include "eloq-operator.commonLabels" . | nindent 4 }}
@@ -17,10 +21,6 @@ webhooks:
       path: /mutate-eloqdbcluster-eloqdata-com-v1alpha1-eloqdbcluster
   failurePolicy: Fail
   name: meloqdbcluster.kb.io
-  namespaceSelector:
-    matchExpressions:
-    - key: disable-webhooks
-      operator: DoesNotExist
   rules:
   - apiGroups:
     - eloqdbcluster.eloqdata.com
@@ -31,33 +31,6 @@ webhooks:
     - UPDATE
     resources:
     - eloqdbclusters
-    scope: Namespaced
-  sideEffects: None
-  timeoutSeconds: 1
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: {{ include "eloq-operator.name" . }}-webhook-service
-      namespace: {{ .Release.Namespace }}
-      path: /mutate-eloqdbcluster-eloqdata-com-v1alpha1-eloqdbclusterclaim
-  failurePolicy: Fail
-  name: meloqdbclusterclaim.kb.io
-  namespaceSelector:
-    matchExpressions:
-    - key: disable-webhooks
-      operator: DoesNotExist
-  rules:
-  - apiGroups:
-    - eloqdbcluster.eloqdata.com
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - eloqdbclusterclaims
-    scope: Namespaced
   sideEffects: None
   timeoutSeconds: 1
 - admissionReviewVersions:
@@ -69,10 +42,6 @@ webhooks:
       path: /mutate-eloqdbcluster-eloqdata-com-v1alpha1-eloqdbclustertemplate
   failurePolicy: Fail
   name: meloqdbclustertemplate.kb.io
-  namespaceSelector:
-    matchExpressions:
-    - key: disable-webhooks
-      operator: DoesNotExist
   rules:
   - apiGroups:
     - eloqdbcluster.eloqdata.com
@@ -83,6 +52,6 @@ webhooks:
     - UPDATE
     resources:
     - eloqdbclustertemplates
-    scope: Namespaced
   sideEffects: None
   timeoutSeconds: 1
+{{- end }}

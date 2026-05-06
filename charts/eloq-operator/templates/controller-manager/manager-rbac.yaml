@@ -1,3 +1,6 @@
+{{- /*
+Generated from eloq-operator/config/rbac/role.yaml via hack/sync_from_operator.py
+*/ -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -7,8 +10,99 @@ metadata:
     {{- include "eloq-operator.commonLabels" . | nindent 4 }}
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps/status
+  - services/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  - services/finalizers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - delete
+  - deletecollection
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - pods/log
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - pods/status
+  verbs:
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - serviceaccounts
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+- apiGroups:
   - apps
   resources:
+  - deployments
   - statefulsets
   verbs:
   - create
@@ -69,91 +163,9 @@ rules:
   verbs:
   - get
 - apiGroups:
-  - ""
+  - cert-manager.io
   resources:
-  - configmaps
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - configmaps/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - nodes
-  verbs:
-  - get
-  - list
-- apiGroups:
-  - ""
-  resources:
-  - persistentvolumeclaims
-  verbs:
-  - list
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - pods
-  verbs:
-  - delete
-  - deletecollection
-  - get
-  - list
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - pods/exec
-  verbs:
-  - create
-- apiGroups:
-  - ""
-  resources:
-  - pods/log
-  verbs:
-  - get
-- apiGroups:
-  - ""
-  resources:
-  - pods/status
-  verbs:
-  - update
-- apiGroups:
-  - ""
-  resources:
-  - secrets
-  verbs:
-  - create
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - serviceaccounts
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - services
+  - certificates
   verbs:
   - create
   - delete
@@ -162,77 +174,11 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - ""
-  resources:
-  - services/finalizers
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - services/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - eloqdbcluster.eloqdata.com
   resources:
   - eloqdbclusterclaims
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - eloqdbcluster.eloqdata.com
-  resources:
-  - eloqdbclusterclaims/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - eloqdbcluster.eloqdata.com
-  resources:
-  - eloqdbclusterclaims/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - eloqdbcluster.eloqdata.com
-  resources:
   - eloqdbclusters
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - eloqdbcluster.eloqdata.com
-  resources:
-  - eloqdbclusters/finalizers
-  verbs:
-  - update
-- apiGroups:
-  - eloqdbcluster.eloqdata.com
-  resources:
-  - eloqdbclusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - eloqdbcluster.eloqdata.com
-  resources:
   - eloqdbclustertemplates
   verbs:
   - create
@@ -245,13 +191,68 @@ rules:
 - apiGroups:
   - eloqdbcluster.eloqdata.com
   resources:
-  - eloqdbclustertemplates/finalizers
+  - eloqdbclusterclaims/finalizers
+  - eloqdbclusters/finalizers
   verbs:
   - update
 - apiGroups:
   - eloqdbcluster.eloqdata.com
   resources:
+  - eloqdbclusterclaims/status
+  - eloqdbclusters/status
   - eloqdbclustertemplates/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.envoyproxy.io
+  resources:
+  - envoyproxies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gateway.networking.k8s.io
+  resources:
+  - gateways
+  - referencegrants
+  - tcproutes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - importjob.eloqdata.com
+  resources:
+  - importjobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - importjob.eloqdata.com
+  resources:
+  - importjobs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - importjob.eloqdata.com
+  resources:
+  - importjobs/status
   verbs:
   - get
   - patch
@@ -260,14 +261,6 @@ rules:
   - rbac.authorization.k8s.io
   resources:
   - rolebindings
-  verbs:
-  - create
-  - get
-  - list
-  - watch
-- apiGroups:
-  - rbac.authorization.k8s.io
-  resources:
   - roles
   verbs:
   - create
